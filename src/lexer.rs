@@ -14,6 +14,7 @@ pub enum Token {
     GT,                 // '>' Greater than
     EQ,                 // '==' Equal to
     NEQ,                // '!=' Not equal to
+    BANG,               // '!'
 
     // Delimiters
     COMMA,              // ','
@@ -56,7 +57,20 @@ pub fn lexer(input: &[u8]) -> Vec<Token> {
             b',' => tokens.push(Token::COMMA),
             b'+' => tokens.push(Token::PLUS),
             b'-' => tokens.push(Token::MINUS),
-            b'=' => tokens.push(Token::ASSIGN),
+            b'=' => {
+                match peek_next_char(pos, input) {
+                    b'=' => { tokens.push(Token::EQ); pos += 1; },
+                    0 => tokens.push(Token::EOF),
+                    _ => tokens.push(Token::ASSIGN)
+                }
+            },
+            b'!' => {
+                match peek_next_char(pos, input) {
+                    b'=' => { tokens.push(Token::NEQ); pos += 1; },
+                    0 => tokens.push(Token::EOF),
+                    _ => tokens.push(Token::BANG)
+                }
+            },
             b'>' => tokens.push(Token::GT),
             b'<' => tokens.push(Token::LT),
             b' ' => (), // Ignore whitespace
@@ -94,6 +108,16 @@ fn is_keyword(chars: &[u8]) -> Token {
         [b'l', b'e', b't'] => Token::LET, // TODO Add more keywords
         chars => Token::IDENT(String::from_utf8_lossy(chars).to_string())
     }
+}
+
+// Peek at the next character in input
+fn peek_next_char(start_pos: usize, input: &[u8]) -> u8 {
+    if start_pos >= input.len() {
+        // We must be at the EOF, outer loop should catch this so it
+        // might not be needed here...
+        return 0;
+    }
+    input[start_pos + 1]
 }
 
 #[cfg(test)]
@@ -151,6 +175,22 @@ mod tests {
             Token::IDENT("hello".to_owned()),
             Token::RPAREN,
             Token::LBRACE,
+            Token::SEMICOLON,
+            Token::EOF,
+        ];
+
+        assert_eq!(expected, tokens);
+    }
+
+    #[test]
+    fn test_double_character_tokens() {
+        let input = "= == !=;";
+
+        let tokens = lexer(input.as_bytes());
+        let expected = vec![
+            Token::ASSIGN,
+            Token::EQ,
+            Token::NEQ,
             Token::SEMICOLON,
             Token::EOF,
         ];
