@@ -105,7 +105,13 @@ fn read_letters(start_pos: usize, input: &[u8]) -> (usize, Token) {
 
 fn is_keyword(chars: &[u8]) -> Token {
     match chars {
-        [b'l', b'e', b't'] => Token::LET, // TODO Add more keywords
+        [b'l', b'e', b't'] => Token::LET,
+        [b'f', b'n'] => Token::FN,
+        [b'i', b'f'] => Token::IF,
+        [b'e', b'l', b's', b'e'] => Token::ELSE,
+        [b'r', b'e', b't', b'u', b'r', b'n'] => Token::RETURN,
+        [b't', b'r', b'u', b'e'] => Token::TRUE,
+        [b'f', b'a', b'l', b's', b'e'] => Token::FALSE,
         chars => Token::IDENT(String::from_utf8_lossy(chars).to_string())
     }
 }
@@ -192,6 +198,33 @@ mod tests {
             Token::EQ,
             Token::NEQ,
             Token::SEMICOLON,
+            Token::EOF,
+        ];
+
+        assert_eq!(expected, tokens);
+    }
+
+    #[test]
+    fn test_keywords() {
+        let input = "let x = true; if hello == false { fn y() }";
+
+        let tokens = lexer(input.as_bytes());
+        let expected = vec![
+            Token::LET,
+            Token::IDENT("x".to_owned()),
+            Token::ASSIGN,
+            Token::TRUE,
+            Token::SEMICOLON,
+            Token::IF,
+            Token::IDENT("hello".to_owned()),
+            Token::EQ,
+            Token::FALSE,
+            Token::LBRACE,
+            Token::FN,
+            Token::IDENT("y".to_owned()),
+            Token::LPAREN,
+            Token::RPAREN,
+            Token::RBRACE,
             Token::EOF,
         ];
 
