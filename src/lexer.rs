@@ -1,26 +1,36 @@
 #[derive(Debug, PartialEq)]
 pub enum Token {
-    ILLEGAL,
-    EOF,
-    IDENT(String),
-    INT(isize),
-    STRING(String),
+    ILLEGAL,            // Illegal token
+    EOF,                // End of file
+    IDENT(String),      // Identifier
+    INT(isize),         // Integer
+    STRING(String),     // String
 
-    // Operators
-    ASSIGN,
-    PLUS,
+    //Operators
+    ASSIGN,             // '='
+    PLUS,               // '+'
+    MINUS,              // '-'
+    LT,                 // '<' Less than
+    GT,                 // '>' Greater than
+    EQ,                 // '==' Equal to
+    NEQ,                // '!=' Not equal to
 
     // Delimiters
-    COMMA,
-    SEMICOLON,
-    LPAREN,
-    RPAREN,
-    LBRACE,
-    RBRACE,
+    COMMA,              // ','
+    SEMICOLON,          // ';'
+    LPAREN,             // '('
+    RPAREN,             // ')'
+    LBRACE,             // '{'
+    RBRACE,             // '}'
 
     // Keywords
-    FN,
+    FN,                 // Function            
     LET,
+    IF,
+    ELSE,
+    RETURN,
+    TRUE,
+    FALSE
 }
 
 pub fn lexer(input: &[u8]) -> Vec<Token> {
@@ -44,6 +54,12 @@ pub fn lexer(input: &[u8]) -> Vec<Token> {
             b')' => tokens.push(Token::RPAREN),
             b';' => tokens.push(Token::SEMICOLON),
             b',' => tokens.push(Token::COMMA),
+            b'+' => tokens.push(Token::PLUS),
+            b'-' => tokens.push(Token::MINUS),
+            b'=' => tokens.push(Token::ASSIGN),
+            b'>' => tokens.push(Token::GT),
+            b'<' => tokens.push(Token::LT),
+            b' ' => (), // Ignore whitespace
             _ => tokens.push(Token::ILLEGAL),
         }
         pos += 1;
@@ -122,5 +138,23 @@ mod tests {
 
         let input = b'&';
         assert!(!is_letter(input));
+    }
+
+    #[test]
+    fn lex_ignore_whitespace() {
+        let input = "}let  hello     ){  ; ";
+
+        let tokens = lexer(input.as_bytes());
+        let expected = vec![
+            Token::RBRACE,
+            Token::LET,
+            Token::IDENT("hello".to_owned()),
+            Token::RPAREN,
+            Token::LBRACE,
+            Token::SEMICOLON,
+            Token::EOF,
+        ];
+
+        assert_eq!(expected, tokens);
     }
 }
