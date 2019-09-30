@@ -49,6 +49,11 @@ pub fn lexer(input: &[u8]) -> Vec<Token> {
                 tokens.push(token);
                 pos = new_pos;
             },
+            ch if is_digit(ch) => {
+                let (new_pos, token) = read_digits(pos, input);
+                tokens.push(token);
+                pos = new_pos;
+            }
             b'{' => tokens.push(Token::LBRACE),
             b'}' => tokens.push(Token::RBRACE),
             b'(' => tokens.push(Token::LPAREN),
@@ -90,6 +95,10 @@ fn is_letter(ch: u8) -> bool {
     b'_' == ch
 }
 
+fn is_digit(ch: u8) -> bool {
+    b'0' <= ch && ch <= b'9'
+}
+
 fn read_letters(start_pos: usize, input: &[u8]) -> (usize, Token) {
     let mut pos = start_pos;
     let mut identifier = Vec::new();
@@ -100,6 +109,24 @@ fn read_letters(start_pos: usize, input: &[u8]) -> (usize, Token) {
     }
 
     let token = is_keyword(&identifier);
+    (pos - 1, token)
+}
+
+fn read_digits(start_pos: usize, input: &[u8]) -> (usize, Token) {
+    let mut pos = start_pos;
+    let mut identifier = Vec::new();
+    // Add next character to identifier until next character is not a letter
+    while pos < input.len() && is_digit(input[pos]) {
+        identifier.push(input[pos]);
+        pos += 1;
+    }
+
+    let num: isize = String::from_utf8_lossy(&identifier)
+        .to_string()
+        .parse()
+        .unwrap();
+
+    let token = Token::INT(num);
     (pos - 1, token)
 }
 
@@ -144,6 +171,28 @@ mod tests {
             Token::SEMICOLON,
             Token::COMMA,
             Token::EOF,
+        ];
+
+        assert_eq!(expected, tokens);
+    }
+
+    #[test]
+    fn lex_digits() {
+        let input = "let x = 67;   hello    num3ber  9";
+
+        let tokens = lexer(input.as_bytes());
+        let expected = vec![
+            Token::LET,
+            Token::IDENT("x".to_owned()),
+            Token::ASSIGN,
+            Token::INT(67),
+            Token::SEMICOLON,
+            Token::IDENT("hello".to_owned()),
+            Token::IDENT("num".to_owned()),
+            Token::INT(3),
+            Token::IDENT("ber".to_owned()),
+            Token::INT(9),
+            Token::EOF
         ];
 
         assert_eq!(expected, tokens);
