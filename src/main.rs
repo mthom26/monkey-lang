@@ -5,6 +5,7 @@ use rustyline::{
 
 mod lexer;
 use lexer::{lexer};
+mod parser;
 
 fn main() {
     let mut rl = rustyline::Editor::<()>::new();
