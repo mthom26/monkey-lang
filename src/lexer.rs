@@ -78,7 +78,7 @@ pub fn lexer(input: &[u8]) -> Vec<Token> {
             },
             b'>' => tokens.push(Token::GT),
             b'<' => tokens.push(Token::LT),
-            b' ' => (), // Ignore whitespace
+            b' ' | b'\n' | b'\r' | b'\t' => (), // Ignore whitespace
             _ => tokens.push(Token::ILLEGAL),
         }
         pos += 1;
@@ -230,6 +230,37 @@ mod tests {
             Token::IDENT("hello".to_owned()),
             Token::RPAREN,
             Token::LBRACE,
+            Token::SEMICOLON,
+            Token::EOF,
+        ];
+
+        assert_eq!(expected, tokens);
+    }
+
+    #[test]
+    fn ignore_all_whitespace() {
+        let input = "let x = 4;
+        let y =     30;
+        let    z = {    hello };";
+
+        let tokens = lexer(input.as_bytes());
+        let expected = vec![
+            Token::LET,
+            Token::IDENT("x".to_owned()),
+            Token::ASSIGN,
+            Token::INT(4),
+            Token::SEMICOLON,
+            Token::LET,
+            Token::IDENT("y".to_owned()),
+            Token::ASSIGN,
+            Token::INT(30),
+            Token::SEMICOLON,
+            Token::LET,
+            Token::IDENT("z".to_owned()),
+            Token::ASSIGN,
+            Token::LBRACE,
+            Token::IDENT("hello".to_owned()),
+            Token::RBRACE,
             Token::SEMICOLON,
             Token::EOF,
         ];
