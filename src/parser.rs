@@ -2,8 +2,45 @@ use crate::lexer::Token;
 
 #[derive(Debug, PartialEq)]
 pub enum Statement {
-    Let { name: String, value: () },
-    Return { value: () }
+    Let { name: String, value: Expression },
+    Return { value: Expression },
+    ExpressionStatement(Expression)
+}
+
+#[derive(Debug, PartialEq)]
+pub enum Expression {
+    Int(isize),
+    Infix { left: Box<Expression>, op: Operator, right: Box<Expression> }
+}
+
+#[derive(Debug, PartialEq)]
+enum Operator {
+    PLUS,
+    MINUS
+}
+
+#[derive(PartialOrd, PartialEq)]
+enum Precedence {
+    LOWEST,
+    EQUALS,         // ==
+    LESSGREATER,    // < or >
+    SUM,            // + or -
+    PRODUCT,        // * or /
+    PREFIX          // -x
+}
+
+impl Token {
+    fn precedence(&self) -> Precedence {
+        match self {
+            Token::PLUS => Precedence::SUM,
+            Token::MINUS => Precedence::SUM,
+            Token::LT => Precedence::LESSGREATER,
+            Token::GT => Precedence::LESSGREATER,
+            Token::EQ => Precedence::EQUALS,
+            Token::NEQ => Precedence::EQUALS,
+            _ => Precedence::LOWEST
+        }
+    }
 }
 
 pub fn parse(tokens: &Vec<Token>) -> Vec<Statement> {
@@ -16,12 +53,18 @@ pub fn parse(tokens: &Vec<Token>) -> Vec<Statement> {
             Token::LET => {
                 let (statement, new_pos) = parse_let(tokens, pos);
                 statements.push(statement);
+                pos = new_pos;
             },
             Token::RETURN => {
                 let (statement, new_pos) = parse_return(tokens, pos);
                 statements.push(statement);
+                pos = new_pos;
             },
-            _ => ()
+            _ => {
+                let (exp, new_pos) = parse_expression(tokens, pos, Precedence::LOWEST);
+                statements.push(Statement::ExpressionStatement(exp));
+                pos = new_pos;
+            }
         }
         pos += 1;
     }
@@ -44,7 +87,7 @@ fn parse_let(tokens: &Vec<Token>, start_pos: usize) -> (Statement, usize) {
     }
     pos += 1;
 
-    let value = parse_expression(tokens, pos);
+    let (value, pos) = parse_expression(tokens, pos, Precedence::LOWEST);
 
     let statement = Statement::Let {
         name, value
@@ -56,7 +99,7 @@ fn parse_let(tokens: &Vec<Token>, start_pos: usize) -> (Statement, usize) {
 fn parse_return(tokens: &Vec<Token>, start_pos: usize) -> (Statement, usize) {
     let mut pos = start_pos + 1;
 
-    let value = parse_expression(tokens, pos);
+    let (value, pos) = parse_expression(tokens, pos, Precedence::LOWEST);
 
     let statement = Statement::Return {
         value
@@ -65,15 +108,62 @@ fn parse_return(tokens: &Vec<Token>, start_pos: usize) -> (Statement, usize) {
     (statement, pos)
 }
 
-fn parse_expression(tokens: &Vec<Token>, start_pos: usize) -> () {
-    ()
+fn parse_expression(
+    tokens: &Vec<Token>,
+    start_pos: usize,
+    precedence: Precedence
+) -> (Expression, usize) {
+    let mut pos = start_pos;
+    // println!("parse_expression: {:?}, {}", tokens[pos], pos);
+    let mut left_exp = match tokens[pos] {
+        Token::INT(val) => Expression::Int(val),
+        _ => panic!("Derp!")
+    };
+    pos += 1;
+
+    // println!("{}\n", tokens[pos] != Token::EOF);
+
+    while (tokens[pos] != Token::SEMICOLON || tokens[pos] != Token::EOF) && precedence < tokens[pos].precedence() {
+        let (new_exp, new_pos) = parse_infix(tokens, pos, left_exp);
+        left_exp = new_exp;
+        pos = new_pos;
+    }
+
+    (left_exp, pos)
+}
+
+#[allow(dead_code)]
+fn parse_infix(
+    tokens: &Vec<Token>,
+    start_pos: usize,
+    left: Expression
+) -> (Expression, usize) {
+    let mut pos = start_pos;
+    // println!("parse_infix: {:?}, {}", tokens[pos], pos);
+    let op = match tokens[pos] {
+        Token::PLUS => Operator::PLUS,
+        Token::MINUS => Operator::MINUS,
+        _ => panic!("Parse Infix called on invalid Token.")
+    };
+    pos += 1;
+
+    let (right_exp, new_pos) = parse_expression(tokens, pos, tokens[pos].precedence());
+    pos = new_pos;
+
+    let exp = Expression::Infix {
+        left: Box::new(left),
+        op,
+        right: Box::new(right_exp)
+    };
+
+    (exp, pos)
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
         lexer::lexer,
-        parser::{parse, Statement}
+        parser::{parse, Statement, Expression}
     };
 
     #[test]
@@ -85,7 +175,7 @@ mod tests {
         let statements = parse(&tokens);
 
         let expected = vec![
-            Statement::Let{ name: "var_name".to_owned(), value: () }
+            Statement::Let{ name: "var_name".to_owned(), value: Expression::Int(8) }
         ];
 
         assert_eq!(expected, statements);
@@ -100,7 +190,21 @@ mod tests {
         let statements = parse(&tokens);
 
         let expected = vec![
-            Statement::Return{ value: () }
+            Statement::Return{ value: Expression::Int(5) }
+        ];
+
+        assert_eq!(expected, statements);
+    }
+
+    #[test]
+    fn parse_basic_expression() {
+        let input = "2 + 5 + 8;";
+
+        let tokens = lexer(input.as_bytes());
+        let statements = parse(&tokens);
+
+        let expected = vec![
+            Statement::ExpressionStatement(Expression::Int(2))
         ];
 
         assert_eq!(expected, statements);
