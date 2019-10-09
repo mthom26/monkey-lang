@@ -2,7 +2,8 @@ use crate::lexer::Token;
 
 #[derive(Debug, PartialEq)]
 pub enum Statement {
-    Let { name: String, value: () }
+    Let { name: String, value: () },
+    Return { value: () }
 }
 
 pub fn parse(tokens: &Vec<Token>) -> Vec<Statement> {
@@ -14,6 +15,10 @@ pub fn parse(tokens: &Vec<Token>) -> Vec<Statement> {
             Token::EOF => break,
             Token::LET => {
                 let (statement, new_pos) = parse_let(tokens, pos);
+                statements.push(statement);
+            },
+            Token::RETURN => {
+                let (statement, new_pos) = parse_return(tokens, pos);
                 statements.push(statement);
             },
             _ => ()
@@ -38,11 +43,23 @@ fn parse_let(tokens: &Vec<Token>, start_pos: usize) -> (Statement, usize) {
         _ => panic!("Parse error in let statement. Expected equality assignment.") 
     }
     pos += 1;
-    // 
+
     let value = parse_expression(tokens, pos);
 
     let statement = Statement::Let {
         name, value
+    };
+
+    (statement, pos)
+}
+
+fn parse_return(tokens: &Vec<Token>, start_pos: usize) -> (Statement, usize) {
+    let mut pos = start_pos + 1;
+
+    let value = parse_expression(tokens, pos);
+
+    let statement = Statement::Return {
+        value
     };
 
     (statement, pos)
@@ -69,6 +86,21 @@ mod tests {
 
         let expected = vec![
             Statement::Let{ name: "var_name".to_owned(), value: () }
+        ];
+
+        assert_eq!(expected, statements);
+    }
+
+    #[test]
+    fn parse_basic_return_statement() {
+        // TODO After implementing expression parsing check that '5' evaluates correctly
+        let input = "return 5;";
+
+        let tokens = lexer(input.as_bytes());
+        let statements = parse(&tokens);
+
+        let expected = vec![
+            Statement::Return{ value: () }
         ];
 
         assert_eq!(expected, statements);
