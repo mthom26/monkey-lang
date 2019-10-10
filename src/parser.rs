@@ -117,6 +117,11 @@ fn parse_expression(
     // println!("parse_expression: {:?}, {}", tokens[pos], pos);
     let mut left_exp = match tokens[pos] {
         Token::INT(val) => Expression::Int(val),
+        Token::LPAREN => {
+            let (exp, new_pos) = parse_expression(tokens, pos + 1, Precedence::LOWEST);
+            pos = new_pos;
+            exp
+        },
         _ => panic!("Derp!")
     };
     pos += 1;
@@ -212,6 +217,28 @@ mod tests {
                 }),
                 op: Operator::PLUS,
                 right: Box::new(Expression::Int(8))
+            })
+        ];
+
+        assert_eq!(expected, statements);
+    }
+
+    #[test]
+    fn parse_parenthesised_expression() {
+        let input = "2 + (5 + 8);";
+
+        let tokens = lexer(input.as_bytes());
+        let statements = parse(&tokens);
+
+        let expected = vec![
+            Statement::ExpressionStatement(Expression::Infix {
+                left: Box::new(Expression::Int(2)),
+                op: Operator::PLUS,
+                right: Box::new(Expression::Infix {
+                    left: Box::new(Expression::Int(5)),
+                    op: Operator::PLUS,
+                    right: Box::new(Expression::Int(8))
+                })
             })
         ];
 
