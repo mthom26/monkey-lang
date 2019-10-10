@@ -15,6 +15,8 @@ pub enum Token {
     EQ,                 // '==' Equal to
     NEQ,                // '!=' Not equal to
     BANG,               // '!'
+    ASTERISK,           // '*'
+    SLASH,              // '/'
 
     // Delimiters
     COMMA,              // ','
@@ -78,6 +80,8 @@ pub fn lexer(input: &[u8]) -> Vec<Token> {
             },
             b'>' => tokens.push(Token::GT),
             b'<' => tokens.push(Token::LT),
+            b'*' => tokens.push(Token::ASTERISK),
+            b'/' => tokens.push(Token::SLASH),
             b' ' | b'\n' | b'\r' | b'\t' => (), // Ignore whitespace
             _ => tokens.push(Token::ILLEGAL),
         }

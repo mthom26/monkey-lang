@@ -16,7 +16,13 @@ pub enum Expression {
 #[derive(Debug, PartialEq)]
 enum Operator {
     PLUS,
-    MINUS
+    MINUS,
+    MULTIPLY,
+    DIVIDE,
+    GREATER,
+    LESS,
+    EQUAL,
+    NEQUAL
 }
 
 #[derive(PartialOrd, PartialEq)]
@@ -38,6 +44,8 @@ impl Token {
             Token::GT => Precedence::LESSGREATER,
             Token::EQ => Precedence::EQUALS,
             Token::NEQ => Precedence::EQUALS,
+            Token::ASTERISK => Precedence::PRODUCT,
+            Token::SLASH => Precedence::PRODUCT,
             _ => Precedence::LOWEST
         }
     }
@@ -148,6 +156,12 @@ fn parse_infix(
     let op = match tokens[pos] {
         Token::PLUS => Operator::PLUS,
         Token::MINUS => Operator::MINUS,
+        Token::ASTERISK => Operator::MULTIPLY,
+        Token::SLASH => Operator::DIVIDE,
+        Token::EQ => Operator::EQUAL,
+        Token::NEQ => Operator::NEQUAL,
+        Token::GT => Operator::GREATER,
+        Token::LT => Operator::LESS,
         _ => panic!("Parse Infix called on invalid Token.")
     };
     pos += 1;
@@ -238,6 +252,28 @@ mod tests {
                     left: Box::new(Expression::Int(5)),
                     op: Operator::PLUS,
                     right: Box::new(Expression::Int(8))
+                })
+            })
+        ];
+
+        assert_eq!(expected, statements);
+    }
+
+    #[test]
+    fn parse_operators() {
+        let input = "1 + 2 * 3;";
+
+        let tokens = lexer(input.as_bytes());
+        let statements = parse(&tokens);
+
+        let expected = vec![
+            Statement::ExpressionStatement(Expression::Infix {
+                left: Box::new(Expression::Int(1)),
+                op: Operator::PLUS,
+                right: Box::new(Expression::Infix {
+                    left: Box::new(Expression::Int(2)),
+                    op: Operator::MULTIPLY,
+                    right: Box::new(Expression::Int(3))
                 })
             })
         ];
