@@ -123,7 +123,7 @@ fn parse_expression(
 
     // println!("{}\n", tokens[pos] != Token::EOF);
 
-    while (tokens[pos] != Token::SEMICOLON || tokens[pos] != Token::EOF) && precedence < tokens[pos].precedence() {
+    while precedence < tokens[pos].precedence() {
         let (new_exp, new_pos) = parse_infix(tokens, pos, left_exp);
         left_exp = new_exp;
         pos = new_pos;
@@ -147,7 +147,7 @@ fn parse_infix(
     };
     pos += 1;
 
-    let (right_exp, new_pos) = parse_expression(tokens, pos, tokens[pos].precedence());
+    let (right_exp, new_pos) = parse_expression(tokens, pos, tokens[pos - 1].precedence());
     pos = new_pos;
 
     let exp = Expression::Infix {
@@ -163,7 +163,7 @@ fn parse_infix(
 mod tests {
     use crate::{
         lexer::lexer,
-        parser::{parse, Statement, Expression}
+        parser::{parse, Statement, Expression, Operator}
     };
 
     #[test]
@@ -204,7 +204,15 @@ mod tests {
         let statements = parse(&tokens);
 
         let expected = vec![
-            Statement::ExpressionStatement(Expression::Int(2))
+            Statement::ExpressionStatement(Expression::Infix {
+                left: Box::new(Expression::Infix {
+                    left: Box::new(Expression::Int(2)),
+                    op: Operator::PLUS,
+                    right: Box::new(Expression::Int(5))
+                }),
+                op: Operator::PLUS,
+                right: Box::new(Expression::Int(8))
+            })
         ];
 
         assert_eq!(expected, statements);
