@@ -1,3 +1,4 @@
+use std::collections::VecDeque;
 use crate::lexer::Token;
 
 #[derive(Debug, PartialEq)]
@@ -51,131 +52,108 @@ impl Token {
     }
 }
 
-pub fn parse(tokens: &Vec<Token>) -> Vec<Statement> {
-    let mut pos = 0;
+pub fn parse(tokens: &mut VecDeque<Token>) -> Vec<Statement> {
     let mut statements: Vec<Statement> = Vec::new();
 
     loop {
-        match tokens[pos] {
+        match &tokens[0] {
             Token::EOF => break,
             Token::LET => {
-                let (statement, new_pos) = parse_let(tokens, pos);
+                tokens.pop_front(); // Discard LET Token
+                let statement = parse_let(tokens);
                 statements.push(statement);
-                pos = new_pos;
             },
             Token::RETURN => {
-                let (statement, new_pos) = parse_return(tokens, pos);
+                tokens.pop_front(); // Discard RETURN Token
+                let statement = parse_return(tokens);
                 statements.push(statement);
-                pos = new_pos;
             },
             _ => {
-                let (exp, new_pos) = parse_expression(tokens, pos, Precedence::LOWEST);
+                let exp = parse_expression(tokens, Precedence::LOWEST);
                 statements.push(Statement::ExpressionStatement(exp));
-                pos = new_pos;
             }
         }
-        pos += 1;
+
+        match tokens.pop_front() {
+            Some(Token::SEMICOLON) => (),
+            _ => panic!("Expected SEMICOLON Token in parse loop.")
+        }
     }
 
     statements
 }
 
-fn parse_let(tokens: &Vec<Token>, start_pos: usize) -> (Statement, usize) {
-    let mut pos = start_pos + 1;
-    // println!("Tokens: {:?}", tokens);
-    let name = match &tokens[pos] {
-        Token::IDENT(name) => name.clone(),
-        _ => panic!("Parse error in let statement. Expected Identifier.") 
+fn parse_let(tokens: &mut VecDeque<Token>) -> Statement {
+    let name = match tokens.pop_front() {
+        Some(Token::IDENT(name)) => name.clone(),
+        _ => panic!("Parse error in let statement. Expected Identifier.")
     };
-    pos += 1;
 
-    match &tokens[pos] {
-        Token::ASSIGN => (),
-        _ => panic!("Parse error in let statement. Expected equality assignment.") 
-    }
-    pos += 1;
+    match tokens.pop_front() {
+        Some(Token::ASSIGN) => (),
+        _ => panic!("Parse error in let statement. Expected Identifier.")
+    };
 
-    let (value, pos) = parse_expression(tokens, pos, Precedence::LOWEST);
+    let value = parse_expression(tokens, Precedence::LOWEST);
 
-    let statement = Statement::Let {
+    Statement::Let {
         name, value
-    };
-
-    (statement, pos)
+    }
 }
 
-fn parse_return(tokens: &Vec<Token>, start_pos: usize) -> (Statement, usize) {
-    let mut pos = start_pos + 1;
+fn parse_return(tokens: &mut VecDeque<Token>) -> Statement {
+    let value = parse_expression(tokens, Precedence::LOWEST);
 
-    let (value, pos) = parse_expression(tokens, pos, Precedence::LOWEST);
-
-    let statement = Statement::Return {
+    Statement::Return {
         value
-    };
-
-    (statement, pos)
+    }
 }
 
-fn parse_expression(
-    tokens: &Vec<Token>,
-    start_pos: usize,
-    precedence: Precedence
-) -> (Expression, usize) {
-    let mut pos = start_pos;
-    // println!("parse_expression: {:?}, {}", tokens[pos], pos);
-    let mut left_exp = match tokens[pos] {
-        Token::INT(val) => Expression::Int(val),
-        Token::LPAREN => {
-            let (exp, new_pos) = parse_expression(tokens, pos + 1, Precedence::LOWEST);
-            pos = new_pos;
+fn parse_expression(tokens: &mut VecDeque<Token>, precedence: Precedence) -> Expression {
+    // println!("parse_expression: {:?}", &tokens[0]);
+    let mut left_exp = match tokens.pop_front() {
+        Some(Token::INT(val)) => Expression::Int(val),
+        Some(Token::LPAREN) => {
+            let exp = parse_expression(tokens, Precedence::LOWEST);
+            match tokens.pop_front() {
+                Some(Token::RPAREN) => (),
+                _ => panic!("Expected RPAREN Token.")
+            }
             exp
         },
-        _ => panic!("Derp!")
+        _ => panic!("Unexpected token in _parse_expression")
     };
-    pos += 1;
 
-    // println!("{}\n", tokens[pos] != Token::EOF);
-
-    while precedence < tokens[pos].precedence() {
-        let (new_exp, new_pos) = parse_infix(tokens, pos, left_exp);
-        left_exp = new_exp;
-        pos = new_pos;
+    let mut next_token = &tokens[0];
+    while precedence < next_token.precedence() {
+        left_exp = parse_infix(tokens, left_exp);
+        next_token = &tokens[0];
     }
 
-    (left_exp, pos)
+    left_exp
 }
 
-#[allow(dead_code)]
-fn parse_infix(
-    tokens: &Vec<Token>,
-    start_pos: usize,
-    left: Expression
-) -> (Expression, usize) {
-    let mut pos = start_pos;
-    // println!("parse_infix: {:?}, {}", tokens[pos], pos);
-    let op = match tokens[pos] {
-        Token::PLUS => Operator::PLUS,
-        Token::MINUS => Operator::MINUS,
-        Token::ASTERISK => Operator::MULTIPLY,
-        Token::SLASH => Operator::DIVIDE,
-        Token::EQ => Operator::EQUAL,
-        Token::NEQ => Operator::NEQUAL,
-        Token::GT => Operator::GREATER,
-        Token::LT => Operator::LESS,
+fn parse_infix(tokens: &mut VecDeque<Token>, left: Expression) -> Expression {
+    // println!("parse_infix: {:?}", &tokens[0]);
+    let (op, precedence) = match tokens.pop_front() {
+        Some(Token::MINUS) => (Operator::MINUS, Token::MINUS.precedence()),
+        Some(Token::PLUS) => (Operator::PLUS, Token::PLUS.precedence()),
+        Some(Token::ASTERISK) => (Operator::MULTIPLY, Token::ASTERISK.precedence()),
+        Some(Token::SLASH) => (Operator::DIVIDE, Token::SLASH.precedence()),
+        Some(Token::EQ) => (Operator::EQUAL, Token::EQ.precedence()),
+        Some(Token::NEQ) => (Operator::NEQUAL, Token::NEQ.precedence()),
+        Some(Token::GT) => (Operator::GREATER, Token::GT.precedence()),
+        Some(Token::LT) => (Operator::LESS, Token::LT.precedence()),
         _ => panic!("Parse Infix called on invalid Token.")
     };
-    pos += 1;
 
-    let (right_exp, new_pos) = parse_expression(tokens, pos, tokens[pos - 1].precedence());
-    pos = new_pos;
+    let right_exp = parse_expression(tokens, precedence);
 
-    let exp = Expression::Infix {
+    Expression::Infix {
         left: Box::new(left),
         op,
         right: Box::new(right_exp)
-    };
-
-    (exp, pos)
+    }
 }
 
 #[cfg(test)]
@@ -187,11 +165,10 @@ mod tests {
 
     #[test]
     fn parse_basic_let_statement() {
-        // TODO After implementing expression parsing check that '8' evaluates correctly
         let input = "let var_name = 8;";
 
-        let tokens = lexer(input.as_bytes());
-        let statements = parse(&tokens);
+        let mut tokens = lexer(input.as_bytes());
+        let statements = parse(&mut tokens);
 
         let expected = vec![
             Statement::Let{ name: "var_name".to_owned(), value: Expression::Int(8) }
@@ -202,11 +179,10 @@ mod tests {
 
     #[test]
     fn parse_basic_return_statement() {
-        // TODO After implementing expression parsing check that '5' evaluates correctly
         let input = "return 5;";
 
-        let tokens = lexer(input.as_bytes());
-        let statements = parse(&tokens);
+        let mut tokens = lexer(input.as_bytes());
+        let statements = parse(&mut tokens);
 
         let expected = vec![
             Statement::Return{ value: Expression::Int(5) }
@@ -219,8 +195,8 @@ mod tests {
     fn parse_basic_expression() {
         let input = "2 + 5 + 8;";
 
-        let tokens = lexer(input.as_bytes());
-        let statements = parse(&tokens);
+        let mut tokens = lexer(input.as_bytes());
+        let statements = parse(&mut tokens);
 
         let expected = vec![
             Statement::ExpressionStatement(Expression::Infix {
@@ -241,8 +217,8 @@ mod tests {
     fn parse_parenthesised_expression() {
         let input = "2 + (5 + 8);";
 
-        let tokens = lexer(input.as_bytes());
-        let statements = parse(&tokens);
+        let mut tokens = lexer(input.as_bytes());
+        let statements = parse(&mut tokens);
 
         let expected = vec![
             Statement::ExpressionStatement(Expression::Infix {
@@ -263,8 +239,8 @@ mod tests {
     fn parse_operators() {
         let input = "1 + 2 * 3;";
 
-        let tokens = lexer(input.as_bytes());
-        let statements = parse(&tokens);
+        let mut tokens = lexer(input.as_bytes());
+        let statements = parse(&mut tokens);
 
         let expected = vec![
             Statement::ExpressionStatement(Expression::Infix {

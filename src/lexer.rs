@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 #[derive(Debug, PartialEq)]
 pub enum Token {
     ILLEGAL,            // Illegal token
@@ -36,54 +38,54 @@ pub enum Token {
     FALSE
 }
 
-pub fn lexer(input: &[u8]) -> Vec<Token> {
+pub fn lexer(input: &[u8]) -> VecDeque<Token> {
     let mut pos = 0;
-    let mut tokens = Vec::new();
+    let mut tokens = VecDeque::new();
 
     loop {
         if pos >= input.len() {
-            tokens.push(Token::EOF);
+            tokens.push_back(Token::EOF);
             break;
         }
         match input[pos] {
             ch if is_letter(ch) => {
                 let (new_pos, token) = read_letters(pos, input);
-                tokens.push(token);
+                tokens.push_back(token);
                 pos = new_pos;
             },
             ch if is_digit(ch) => {
                 let (new_pos, token) = read_digits(pos, input);
-                tokens.push(token);
+                tokens.push_back(token);
                 pos = new_pos;
             }
-            b'{' => tokens.push(Token::LBRACE),
-            b'}' => tokens.push(Token::RBRACE),
-            b'(' => tokens.push(Token::LPAREN),
-            b')' => tokens.push(Token::RPAREN),
-            b';' => tokens.push(Token::SEMICOLON),
-            b',' => tokens.push(Token::COMMA),
-            b'+' => tokens.push(Token::PLUS),
-            b'-' => tokens.push(Token::MINUS),
+            b'{' => tokens.push_back(Token::LBRACE),
+            b'}' => tokens.push_back(Token::RBRACE),
+            b'(' => tokens.push_back(Token::LPAREN),
+            b')' => tokens.push_back(Token::RPAREN),
+            b';' => tokens.push_back(Token::SEMICOLON),
+            b',' => tokens.push_back(Token::COMMA),
+            b'+' => tokens.push_back(Token::PLUS),
+            b'-' => tokens.push_back(Token::MINUS),
             b'=' => {
                 match peek_next_char(pos, input) {
-                    b'=' => { tokens.push(Token::EQ); pos += 1; },
-                    0 => tokens.push(Token::EOF),
-                    _ => tokens.push(Token::ASSIGN)
+                    b'=' => { tokens.push_back(Token::EQ); pos += 1; },
+                    0 => tokens.push_back(Token::EOF),
+                    _ => tokens.push_back(Token::ASSIGN)
                 }
             },
             b'!' => {
                 match peek_next_char(pos, input) {
-                    b'=' => { tokens.push(Token::NEQ); pos += 1; },
-                    0 => tokens.push(Token::EOF),
-                    _ => tokens.push(Token::BANG)
+                    b'=' => { tokens.push_back(Token::NEQ); pos += 1; },
+                    0 => tokens.push_back(Token::EOF),
+                    _ => tokens.push_back(Token::BANG)
                 }
             },
-            b'>' => tokens.push(Token::GT),
-            b'<' => tokens.push(Token::LT),
-            b'*' => tokens.push(Token::ASTERISK),
-            b'/' => tokens.push(Token::SLASH),
+            b'>' => tokens.push_back(Token::GT),
+            b'<' => tokens.push_back(Token::LT),
+            b'*' => tokens.push_back(Token::ASTERISK),
+            b'/' => tokens.push_back(Token::SLASH),
             b' ' | b'\n' | b'\r' | b'\t' => (), // Ignore whitespace
-            _ => tokens.push(Token::ILLEGAL),
+            _ => tokens.push_back(Token::ILLEGAL),
         }
         pos += 1;
     }
@@ -159,7 +161,7 @@ fn peek_next_char(start_pos: usize, input: &[u8]) -> u8 {
 
 #[cfg(test)]
 mod tests {
-    
+    use std::collections::VecDeque;
     use crate::lexer::{lexer, Token, is_letter};
 
     #[test]
@@ -167,7 +169,7 @@ mod tests {
         let input = "{}();,";
 
         let tokens = lexer(input.as_bytes());
-        let expected = vec![
+        let expected = VecDeque::from(vec![
             Token::LBRACE,
             Token::RBRACE,
             Token::LPAREN,
@@ -175,7 +177,7 @@ mod tests {
             Token::SEMICOLON,
             Token::COMMA,
             Token::EOF,
-        ];
+        ]);
 
         assert_eq!(expected, tokens);
     }
@@ -185,7 +187,7 @@ mod tests {
         let input = "let x = 67;   hello    num3ber  9";
 
         let tokens = lexer(input.as_bytes());
-        let expected = vec![
+        let expected = VecDeque::from(vec![
             Token::LET,
             Token::IDENT("x".to_owned()),
             Token::ASSIGN,
@@ -197,7 +199,7 @@ mod tests {
             Token::IDENT("ber".to_owned()),
             Token::INT(9),
             Token::EOF
-        ];
+        ]);
 
         assert_eq!(expected, tokens);
     }
@@ -228,7 +230,7 @@ mod tests {
         let input = "}let  hello     ){  ; ";
 
         let tokens = lexer(input.as_bytes());
-        let expected = vec![
+        let expected = VecDeque::from(vec![
             Token::RBRACE,
             Token::LET,
             Token::IDENT("hello".to_owned()),
@@ -236,7 +238,7 @@ mod tests {
             Token::LBRACE,
             Token::SEMICOLON,
             Token::EOF,
-        ];
+        ]);
 
         assert_eq!(expected, tokens);
     }
@@ -248,7 +250,7 @@ mod tests {
         let    z = {    hello };";
 
         let tokens = lexer(input.as_bytes());
-        let expected = vec![
+        let expected = VecDeque::from(vec![
             Token::LET,
             Token::IDENT("x".to_owned()),
             Token::ASSIGN,
@@ -267,7 +269,7 @@ mod tests {
             Token::RBRACE,
             Token::SEMICOLON,
             Token::EOF,
-        ];
+        ]);
 
         assert_eq!(expected, tokens);
     }
@@ -277,13 +279,13 @@ mod tests {
         let input = "= == !=;";
 
         let tokens = lexer(input.as_bytes());
-        let expected = vec![
+        let expected = VecDeque::from(vec![
             Token::ASSIGN,
             Token::EQ,
             Token::NEQ,
             Token::SEMICOLON,
             Token::EOF,
-        ];
+        ]);
 
         assert_eq!(expected, tokens);
     }
@@ -293,7 +295,7 @@ mod tests {
         let input = "let x = true; if hello == false { fn y() }";
 
         let tokens = lexer(input.as_bytes());
-        let expected = vec![
+        let expected = VecDeque::from(vec![
             Token::LET,
             Token::IDENT("x".to_owned()),
             Token::ASSIGN,
@@ -310,7 +312,7 @@ mod tests {
             Token::RPAREN,
             Token::RBRACE,
             Token::EOF,
-        ];
+        ]);
 
         assert_eq!(expected, tokens);
     }
