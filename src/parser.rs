@@ -11,7 +11,8 @@ pub enum Statement {
 #[derive(Debug, PartialEq)]
 pub enum Expression {
     Int(isize),
-    Infix { left: Box<Expression>, op: Operator, right: Box<Expression> }
+    Infix { left: Box<Expression>, op: Operator, right: Box<Expression> },
+    If { condition: Box<Expression>, consequence: Vec<Statement>, alternative: Vec<Statement>},
 }
 
 #[derive(Debug, PartialEq)]
@@ -68,6 +69,7 @@ pub fn parse(tokens: &mut VecDeque<Token>) -> Vec<Statement> {
                 let statement = parse_return(tokens);
                 statements.push(statement);
             },
+            Token::RBRACE => break, // We must be at end of a block so break
             _ => {
                 let exp = parse_expression(tokens, Precedence::LOWEST);
                 statements.push(Statement::ExpressionStatement(exp));
@@ -120,6 +122,33 @@ fn parse_expression(tokens: &mut VecDeque<Token>, precedence: Precedence) -> Exp
                 _ => panic!("Expected RPAREN Token.")
             }
             exp
+        },
+        Some(Token::IF) => {
+            assert_eq!(Token::LPAREN, tokens.pop_front().unwrap());
+            let condition = parse_expression(tokens, Precedence::LOWEST);
+            assert_eq!(Token::RPAREN, tokens.pop_front().unwrap());
+            println!("CON");
+            assert_eq!(Token::LBRACE, tokens.pop_front().unwrap());
+            let consequence = parse(tokens);
+            assert_eq!(Token::RBRACE, tokens.pop_front().unwrap());
+            
+            let alternative = match &tokens[0] {
+                Token::ELSE => {
+                    tokens.pop_front();
+                    assert_eq!(Token::LBRACE, tokens.pop_front().unwrap());
+                    println!("ALT");
+                    let alternative = parse(tokens);
+                    assert_eq!(Token::RBRACE, tokens.pop_front().unwrap());
+                    alternative
+                },
+                _ => Vec::new()
+            };
+
+            Expression::If {
+                condition: Box::new(condition),
+                consequence,
+                alternative
+            }
         },
         _ => panic!("Unexpected token in _parse_expression")
     };
@@ -251,6 +280,32 @@ mod tests {
                     op: Operator::MULTIPLY,
                     right: Box::new(Expression::Int(3))
                 })
+            })
+        ];
+
+        assert_eq!(expected, statements);
+    }
+
+    #[test]
+    fn test_if_statement() {
+        let input = "if (7) { 1 + 3; } else { 8; };";
+
+        let mut tokens = lexer(input.as_bytes());
+        let statements = parse(&mut tokens);
+
+        let expected = vec![
+            Statement::ExpressionStatement(Expression::If {
+                condition: Box::new(Expression::Int(7)),
+                consequence: vec![
+                    Statement::ExpressionStatement(Expression::Infix {
+                        left: Box::new(Expression::Int(1)),
+                        op: Operator::PLUS,
+                        right: Box::new(Expression::Int(3))
+                    })
+                ],
+                alternative: vec![
+                    Statement::ExpressionStatement(Expression::Int(8))
+                ]
             })
         ];
 
