@@ -14,7 +14,14 @@ pub enum Expression {
     Boolean(bool),
     Ident(String),
     Infix { left: Box<Expression>, op: Operator, right: Box<Expression> },
+    Prefix { prefix: Prefix, value: Box<Expression> },
     If { condition: Box<Expression>, consequence: Vec<Statement>, alternative: Vec<Statement>},
+}
+
+#[derive(Debug, PartialEq)]
+enum Prefix {
+    BANG,
+    MINUS
 }
 
 #[derive(Debug, PartialEq)]
@@ -152,6 +159,14 @@ fn parse_expression(tokens: &mut VecDeque<Token>, precedence: Precedence) -> Exp
                 alternative
             }
         },
+        Some(Token::MINUS) => Expression::Prefix {
+            prefix: Prefix::MINUS,
+            value: Box::new(parse_expression(tokens, Precedence::PREFIX))
+        },
+        Some(Token::BANG) => Expression::Prefix {
+            prefix: Prefix::BANG,
+            value: Box::new(parse_expression(tokens, Precedence::PREFIX))
+        },
         _ => panic!("Unexpected token in _parse_expression")
     };
 
@@ -191,7 +206,7 @@ fn parse_infix(tokens: &mut VecDeque<Token>, left: Expression) -> Expression {
 mod tests {
     use crate::{
         lexer::lexer,
-        parser::{parse, Statement, Expression, Operator}
+        parser::{parse, Statement, Expression, Operator, Prefix}
     };
 
     #[test]
@@ -309,6 +324,50 @@ mod tests {
                     Statement::ExpressionStatement(Expression::Int(8))
                 ]
             })
+        ];
+
+        assert_eq!(expected, statements);
+    }
+
+    #[test]
+    fn test_prefixes() {
+        let input = "let a = -33;
+        let b = !true;
+        let c = -1 + 2 + 3;";
+
+        let mut tokens = lexer(input.as_bytes());
+        let statements = parse(&mut tokens);
+
+        let expected = vec![
+            Statement::Let {
+                name: "a".to_owned(),
+                value: Expression::Prefix {
+                    prefix: Prefix::MINUS,
+                    value: Box::new(Expression::Int(33))
+                }
+            },
+            Statement::Let {
+                name: "b".to_owned(),
+                value: Expression::Prefix {
+                    prefix: Prefix::BANG,
+                    value: Box::new(Expression::Boolean(true))
+                }
+            },
+            Statement::Let {
+                name: "c".to_owned(),
+                value: Expression::Infix {
+                    left: Box::new(Expression::Infix {
+                        left: Box::new(Expression::Prefix {
+                            prefix: Prefix::MINUS,
+                            value: Box::new(Expression::Int(1))
+                        }),
+                        op: Operator::PLUS,
+                        right: Box::new(Expression::Int(2))
+                    }),
+                    op: Operator::PLUS,
+                    right: Box::new(Expression::Int(3))
+                }
+            },
         ];
 
         assert_eq!(expected, statements);
