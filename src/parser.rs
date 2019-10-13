@@ -62,11 +62,13 @@ pub fn parse(tokens: &mut VecDeque<Token>) -> Vec<Statement> {
             Token::LET => {
                 tokens.pop_front(); // Discard LET Token
                 let statement = parse_let(tokens);
+                assert_eq!(Token::SEMICOLON, tokens.pop_front().unwrap());
                 statements.push(statement);
             },
             Token::RETURN => {
                 tokens.pop_front(); // Discard RETURN Token
                 let statement = parse_return(tokens);
+                assert_eq!(Token::SEMICOLON, tokens.pop_front().unwrap());
                 statements.push(statement);
             },
             Token::RBRACE => break, // We must be at end of a block so break
@@ -74,11 +76,6 @@ pub fn parse(tokens: &mut VecDeque<Token>) -> Vec<Statement> {
                 let exp = parse_expression(tokens, Precedence::LOWEST);
                 statements.push(Statement::ExpressionStatement(exp));
             }
-        }
-
-        match tokens.pop_front() {
-            Some(Token::SEMICOLON) => (),
-            _ => panic!("Expected SEMICOLON Token in parse loop.")
         }
     }
 
@@ -222,7 +219,7 @@ mod tests {
 
     #[test]
     fn parse_basic_expression() {
-        let input = "2 + 5 + 8;";
+        let input = "2 + 5 + 8";
 
         let mut tokens = lexer(input.as_bytes());
         let statements = parse(&mut tokens);
@@ -244,7 +241,7 @@ mod tests {
 
     #[test]
     fn parse_parenthesised_expression() {
-        let input = "2 + (5 + 8);";
+        let input = "2 + (5 + 8)";
 
         let mut tokens = lexer(input.as_bytes());
         let statements = parse(&mut tokens);
@@ -266,7 +263,7 @@ mod tests {
 
     #[test]
     fn parse_operators() {
-        let input = "1 + 2 * 3;";
+        let input = "1 + 2 * 3";
 
         let mut tokens = lexer(input.as_bytes());
         let statements = parse(&mut tokens);
@@ -288,7 +285,7 @@ mod tests {
 
     #[test]
     fn test_if_statement() {
-        let input = "if (7) { 1 + 3; } else { 8; };";
+        let input = "if (7) { 1 + 3 } else { 8 }";
 
         let mut tokens = lexer(input.as_bytes());
         let statements = parse(&mut tokens);
