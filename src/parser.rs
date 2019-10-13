@@ -11,6 +11,8 @@ pub enum Statement {
 #[derive(Debug, PartialEq)]
 pub enum Expression {
     Int(isize),
+    Boolean(bool),
+    Ident(String),
     Infix { left: Box<Expression>, op: Operator, right: Box<Expression> },
     If { condition: Box<Expression>, consequence: Vec<Statement>, alternative: Vec<Statement>},
 }
@@ -112,6 +114,9 @@ fn parse_expression(tokens: &mut VecDeque<Token>, precedence: Precedence) -> Exp
     // println!("parse_expression: {:?}", &tokens[0]);
     let mut left_exp = match tokens.pop_front() {
         Some(Token::INT(val)) => Expression::Int(val),
+        Some(Token::TRUE) => Expression::Boolean(true),
+        Some(Token::FALSE) => Expression::Boolean(false),
+        Some(Token::IDENT(name)) => Expression::Ident(name),
         Some(Token::LPAREN) => {
             let exp = parse_expression(tokens, Precedence::LOWEST);
             match tokens.pop_front() {
@@ -304,6 +309,61 @@ mod tests {
                     Statement::ExpressionStatement(Expression::Int(8))
                 ]
             })
+        ];
+
+        assert_eq!(expected, statements);
+    }
+
+    #[test]
+    fn test_mock_program() {
+        let input = "let x = 7;
+        let hello = true;
+        
+        if(hello) {
+            let y = x;
+            11
+        } else {
+            2 + 3 * 9
+        }
+        
+        return 1;";
+
+        let mut tokens = lexer(input.as_bytes());
+        let statements = parse(&mut tokens);
+
+        let expected = vec![
+            Statement::Let {
+                name: "x".to_owned(),
+                value: Expression::Int(7)
+            },
+            Statement::Let {
+                name: "hello".to_owned(),
+                value: Expression::Boolean(true)
+            },
+            Statement::ExpressionStatement(Expression::If {
+                condition: Box::new(Expression::Ident("hello".to_owned())),
+                consequence: vec![
+                    Statement::Let {
+                        name: "y".to_owned(),
+                        value: Expression::Ident("x".to_owned())
+                    },
+                    Statement::ExpressionStatement(Expression::Int(11))
+                ],
+                alternative: vec![
+                    Statement::ExpressionStatement(Expression::Infix {
+                        left: Box::new(Expression::Int(2)),
+                        op: Operator::PLUS,
+                        right: Box::new(Expression::Infix {
+                            left: Box::new(Expression::Int(3)),
+                            op: Operator::MULTIPLY,
+                            right: Box::new(Expression::Int(9))
+                        })
+                    })
+                ]
+            }),
+            Statement::Return {
+                value: Expression::Int(1)
+            }
         ];
 
         assert_eq!(expected, statements);
