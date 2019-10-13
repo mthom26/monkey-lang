@@ -84,6 +84,11 @@ pub fn lexer(input: &[u8]) -> VecDeque<Token> {
             b'<' => tokens.push_back(Token::LT),
             b'*' => tokens.push_back(Token::ASTERISK),
             b'/' => tokens.push_back(Token::SLASH),
+            39 => { // 39 is the ascii int for the ' character
+                let (new_pos, token) = read_string(pos, input);
+                tokens.push_back(token);
+                pos = new_pos;
+            },
             b' ' | b'\n' | b'\r' | b'\t' => (), // Ignore whitespace
             _ => tokens.push_back(Token::ILLEGAL),
         }
@@ -134,6 +139,19 @@ fn read_digits(start_pos: usize, input: &[u8]) -> (usize, Token) {
 
     let token = Token::INT(num);
     (pos - 1, token)
+}
+
+fn read_string(start_pos: usize, input: &[u8]) -> (usize, Token) {
+    let mut pos = start_pos + 1;
+    let mut value = Vec::new();
+
+    while input[pos] != 39 {
+        value.push(input[pos]);
+        pos += 1;
+    }
+
+    let token = Token::STRING(String::from_utf8_lossy(&value).to_string());
+    (pos, token)
 }
 
 fn is_keyword(chars: &[u8]) -> Token {
@@ -311,6 +329,23 @@ mod tests {
             Token::LPAREN,
             Token::RPAREN,
             Token::RBRACE,
+            Token::EOF,
+        ]);
+
+        assert_eq!(expected, tokens);
+    }
+
+    #[test]
+    fn test_string() {
+        let input = "let name = 'jimmy * 123';";
+
+        let tokens = lexer(input.as_bytes());
+        let expected = VecDeque::from(vec![
+            Token::LET,
+            Token::IDENT("name".to_owned()),
+            Token::ASSIGN,
+            Token::STRING("jimmy * 123".to_owned()),
+            Token::SEMICOLON,
             Token::EOF,
         ]);
 
