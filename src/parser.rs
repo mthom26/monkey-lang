@@ -13,6 +13,7 @@ pub enum Expression {
     Int(isize),
     Boolean(bool),
     Ident(String),
+    String(String),
     Infix { left: Box<Expression>, op: Operator, right: Box<Expression> },
     Prefix { prefix: Prefix, value: Box<Expression> },
     If { condition: Box<Expression>, consequence: Vec<Statement>, alternative: Vec<Statement>},
@@ -123,6 +124,7 @@ fn parse_expression(tokens: &mut VecDeque<Token>, precedence: Precedence) -> Exp
         Some(Token::INT(val)) => Expression::Int(val),
         Some(Token::TRUE) => Expression::Boolean(true),
         Some(Token::FALSE) => Expression::Boolean(false),
+        Some(Token::STRING(val)) => Expression::String(val),
         Some(Token::IDENT(name)) => Expression::Ident(name),
         Some(Token::LPAREN) => {
             let exp = parse_expression(tokens, Precedence::LOWEST);
@@ -377,7 +379,8 @@ mod tests {
     fn test_mock_program() {
         let input = "let x = 7;
         let hello = true;
-        
+        let name = 'spyro';
+
         if(hello) {
             let y = x;
             11
@@ -398,6 +401,10 @@ mod tests {
             Statement::Let {
                 name: "hello".to_owned(),
                 value: Expression::Boolean(true)
+            },
+            Statement::Let {
+                name: "name".to_owned(),
+                value: Expression::String("spyro".to_owned())
             },
             Statement::ExpressionStatement(Expression::If {
                 condition: Box::new(Expression::Ident("hello".to_owned())),
