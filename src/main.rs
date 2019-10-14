@@ -6,6 +6,7 @@ use rustyline::{
 mod lexer;
 use lexer::{lexer};
 mod parser;
+use parser::parse;
 
 fn main() {
     let mut rl = rustyline::Editor::<()>::new();
@@ -13,8 +14,9 @@ fn main() {
     loop {
         match rl.readline(">> ") {
             Ok(line) => {
-                let tokens = lexer(line.as_bytes());
-                println!("{:?}", tokens);
+                let mut tokens = lexer(line.as_bytes());
+                let ast = parse(&mut tokens);
+                println!("{:?}", ast);
             },
             Err(ReadlineError::Interrupted) => break, // 'Ctrl-c' pressed
             Err(_) => println!("No Input")
