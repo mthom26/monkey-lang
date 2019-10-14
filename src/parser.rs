@@ -18,6 +18,7 @@ pub enum Expression {
     Prefix { prefix: Prefix, value: Box<Expression> },
     If { condition: Box<Expression>, consequence: Vec<Statement>, alternative: Vec<Statement>},
     FnLiteral { parameters: Vec<String>, body: Vec<Statement> },
+    FnCall { function: Box<Expression>, args: Vec<Expression> },
 }
 
 #[derive(Debug, PartialEq)]
@@ -126,7 +127,35 @@ fn parse_expression(tokens: &mut VecDeque<Token>, precedence: Precedence) -> Exp
         Some(Token::TRUE) => Expression::Boolean(true),
         Some(Token::FALSE) => Expression::Boolean(false),
         Some(Token::STRING(val)) => Expression::String(val),
-        Some(Token::IDENT(name)) => Expression::Ident(name),
+        Some(Token::IDENT(name)) => {
+            if tokens[0] == Token::LPAREN { // Ident followed by LPAREN is a function call
+                assert_eq!(Token::LPAREN, tokens.pop_front().unwrap());
+                let mut args = vec![];
+
+                loop {
+                    match tokens[0] {
+                        Token::RPAREN => break,
+                        _ => {
+                            let arg = parse_expression(tokens, Precedence::LOWEST);
+                            args.push(arg);
+                        }
+                    }
+
+                    match tokens.pop_front().unwrap() {
+                        Token::RPAREN => break,
+                        Token::COMMA => continue,
+                        _ => panic!("Unexpected error when parsing function call.")
+                    }
+                }
+
+                Expression::FnCall {
+                    function: Box::new(Expression::Ident(name)),
+                    args
+                }
+            } else {
+                Expression::Ident(name)
+            }
+        },
         Some(Token::LPAREN) => {
             let exp = parse_expression(tokens, Precedence::LOWEST);
             match tokens.pop_front() {
@@ -198,7 +227,7 @@ fn parse_expression(tokens: &mut VecDeque<Token>, precedence: Precedence) -> Exp
                 body
             }
         },
-        _ => panic!("Unexpected token in _parse_expression")
+        _ => panic!("Unexpected token in parse_expression")
     };
 
     let mut next_token = &tokens[0];
@@ -420,6 +449,26 @@ mod tests {
                     Statement::Return {
                         value: Expression::Int(23)
                     }
+                ]
+            })
+        ];
+
+        assert_eq!(expected, statements);
+    }
+
+    #[test]
+    fn test_function_call() {
+        let input = "add(2, 7)";
+
+        let mut tokens = lexer(input.as_bytes());
+        let statements = parse(&mut tokens);
+
+        let expected = vec![
+            Statement::ExpressionStatement(Expression::FnCall {
+                function: Box::new(Expression::Ident("add".to_owned())),
+                args: vec![
+                    Expression::Int(2),
+                    Expression::Int(7)
                 ]
             })
         ];
