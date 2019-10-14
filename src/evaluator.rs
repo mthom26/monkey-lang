@@ -1,6 +1,4 @@
-use crate::parser::{
-    Statement, Expression
-};
+use crate::parser::{Expression, Statement};
 
 #[derive(Debug, PartialEq)]
 pub enum Object {
@@ -9,15 +7,15 @@ pub enum Object {
     Boolean(bool),
 }
 
-pub fn eval(ast : Vec<Statement>) -> Object {
+pub fn eval(ast: Vec<Statement>) -> Object {
     let mut result = Object::Null;
 
     for statement in ast {
         match statement {
             Statement::ExpressionStatement(exp) => {
                 result = eval_expression(exp);
-            },
-            _ => ()
+            }
+            _ => (),
         }
     }
 
@@ -28,16 +26,16 @@ fn eval_expression(exp: Expression) -> Object {
     match exp {
         Expression::Int(val) => Object::Int(val),
         Expression::Boolean(val) => Object::Boolean(val),
-        _ => panic!("Unexpected Expression in eval_expression")
+        _ => panic!("Unexpected Expression in eval_expression"),
     }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
+        evaluator::{eval, Object},
         lexer::lexer,
         parser::parse,
-        evaluator::{eval, Object}
     };
 
     // Convenience function to lex, parse and eval an input

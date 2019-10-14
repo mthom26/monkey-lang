@@ -1,10 +1,7 @@
-use rustyline::{
-    self,
-    error::ReadlineError
-};
+use rustyline::{self, error::ReadlineError};
 
 mod lexer;
-use lexer::{lexer};
+use lexer::lexer;
 mod parser;
 use parser::parse;
 mod evaluator;
@@ -23,11 +20,11 @@ fn main() {
                 match evaluated {
                     Object::Int(val) => println!("{}", val),
                     Object::Boolean(val) => println!("{}", val),
-                    Object::Null => println!("Null")
+                    Object::Null => println!("Null"),
                 }
-            },
+            }
             Err(ReadlineError::Interrupted) => break, // 'Ctrl-c' pressed
-            Err(_) => println!("No Input")
+            Err(_) => println!("No Input"),
         }
     }
 }

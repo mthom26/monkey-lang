@@ -1,11 +1,11 @@
-use std::collections::VecDeque;
 use crate::lexer::Token;
+use std::collections::VecDeque;
 
 #[derive(Debug, PartialEq)]
 pub enum Statement {
     Let { name: String, value: Expression },
     Return { value: Expression },
-    ExpressionStatement(Expression)
+    ExpressionStatement(Expression),
 }
 
 #[derive(Debug, PartialEq)]
@@ -14,17 +14,34 @@ pub enum Expression {
     Boolean(bool),
     Ident(String),
     String(String),
-    Infix { left: Box<Expression>, op: Operator, right: Box<Expression> },
-    Prefix { prefix: Prefix, value: Box<Expression> },
-    If { condition: Box<Expression>, consequence: Vec<Statement>, alternative: Vec<Statement>},
-    FnLiteral { parameters: Vec<String>, body: Vec<Statement> },
-    FnCall { function: Box<Expression>, args: Vec<Expression> },
+    Infix {
+        left: Box<Expression>,
+        op: Operator,
+        right: Box<Expression>,
+    },
+    Prefix {
+        prefix: Prefix,
+        value: Box<Expression>,
+    },
+    If {
+        condition: Box<Expression>,
+        consequence: Vec<Statement>,
+        alternative: Vec<Statement>,
+    },
+    FnLiteral {
+        parameters: Vec<String>,
+        body: Vec<Statement>,
+    },
+    FnCall {
+        function: Box<Expression>,
+        args: Vec<Expression>,
+    },
 }
 
 #[derive(Debug, PartialEq)]
 pub enum Prefix {
     BANG,
-    MINUS
+    MINUS,
 }
 
 #[derive(Debug, PartialEq)]
@@ -36,17 +53,17 @@ pub enum Operator {
     GREATER,
     LESS,
     EQUAL,
-    NEQUAL
+    NEQUAL,
 }
 
 #[derive(PartialOrd, PartialEq)]
 enum Precedence {
     LOWEST,
-    EQUALS,         // ==
-    LESSGREATER,    // < or >
-    SUM,            // + or -
-    PRODUCT,        // * or /
-    PREFIX          // -x
+    EQUALS,      // ==
+    LESSGREATER, // < or >
+    SUM,         // + or -
+    PRODUCT,     // * or /
+    PREFIX,      // -x
 }
 
 impl Token {
@@ -60,7 +77,7 @@ impl Token {
             Token::NEQ => Precedence::EQUALS,
             Token::ASTERISK => Precedence::PRODUCT,
             Token::SLASH => Precedence::PRODUCT,
-            _ => Precedence::LOWEST
+            _ => Precedence::LOWEST,
         }
     }
 }
@@ -76,13 +93,13 @@ pub fn parse(tokens: &mut VecDeque<Token>) -> Vec<Statement> {
                 let statement = parse_let(tokens);
                 assert_eq!(Token::SEMICOLON, tokens.pop_front().unwrap());
                 statements.push(statement);
-            },
+            }
             Token::RETURN => {
                 tokens.pop_front(); // Discard RETURN Token
                 let statement = parse_return(tokens);
                 assert_eq!(Token::SEMICOLON, tokens.pop_front().unwrap());
                 statements.push(statement);
-            },
+            }
             Token::RBRACE => break, // We must be at end of a block so break
             _ => {
                 let exp = parse_expression(tokens, Precedence::LOWEST);
@@ -97,27 +114,23 @@ pub fn parse(tokens: &mut VecDeque<Token>) -> Vec<Statement> {
 fn parse_let(tokens: &mut VecDeque<Token>) -> Statement {
     let name = match tokens.pop_front() {
         Some(Token::IDENT(name)) => name.clone(),
-        _ => panic!("Parse error in let statement. Expected Identifier.")
+        _ => panic!("Parse error in let statement. Expected Identifier."),
     };
 
     match tokens.pop_front() {
         Some(Token::ASSIGN) => (),
-        _ => panic!("Parse error in let statement. Expected ASSIGN Token.")
+        _ => panic!("Parse error in let statement. Expected ASSIGN Token."),
     };
 
     let value = parse_expression(tokens, Precedence::LOWEST);
 
-    Statement::Let {
-        name, value
-    }
+    Statement::Let { name, value }
 }
 
 fn parse_return(tokens: &mut VecDeque<Token>) -> Statement {
     let value = parse_expression(tokens, Precedence::LOWEST);
 
-    Statement::Return {
-        value
-    }
+    Statement::Return { value }
 }
 
 fn parse_expression(tokens: &mut VecDeque<Token>, precedence: Precedence) -> Expression {
@@ -128,7 +141,8 @@ fn parse_expression(tokens: &mut VecDeque<Token>, precedence: Precedence) -> Exp
         Some(Token::FALSE) => Expression::Boolean(false),
         Some(Token::STRING(val)) => Expression::String(val),
         Some(Token::IDENT(name)) => {
-            if tokens[0] == Token::LPAREN { // Ident followed by LPAREN is a function call
+            if tokens[0] == Token::LPAREN {
+                // Ident followed by LPAREN is a function call
                 assert_eq!(Token::LPAREN, tokens.pop_front().unwrap());
                 let mut args = vec![];
 
@@ -144,26 +158,26 @@ fn parse_expression(tokens: &mut VecDeque<Token>, precedence: Precedence) -> Exp
                     match tokens.pop_front().unwrap() {
                         Token::RPAREN => break,
                         Token::COMMA => continue,
-                        _ => panic!("Unexpected error when parsing function call.")
+                        _ => panic!("Unexpected error when parsing function call."),
                     }
                 }
 
                 Expression::FnCall {
                     function: Box::new(Expression::Ident(name)),
-                    args
+                    args,
                 }
             } else {
                 Expression::Ident(name)
             }
-        },
+        }
         Some(Token::LPAREN) => {
             let exp = parse_expression(tokens, Precedence::LOWEST);
             match tokens.pop_front() {
                 Some(Token::RPAREN) => (),
-                _ => panic!("Expected RPAREN Token.")
+                _ => panic!("Expected RPAREN Token."),
             }
             exp
-        },
+        }
         Some(Token::IF) => {
             assert_eq!(Token::LPAREN, tokens.pop_front().unwrap());
             let condition = parse_expression(tokens, Precedence::LOWEST);
@@ -172,7 +186,7 @@ fn parse_expression(tokens: &mut VecDeque<Token>, precedence: Precedence) -> Exp
             assert_eq!(Token::LBRACE, tokens.pop_front().unwrap());
             let consequence = parse(tokens);
             assert_eq!(Token::RBRACE, tokens.pop_front().unwrap());
-            
+
             let alternative = match &tokens[0] {
                 Token::ELSE => {
                     tokens.pop_front();
@@ -180,23 +194,23 @@ fn parse_expression(tokens: &mut VecDeque<Token>, precedence: Precedence) -> Exp
                     let alternative = parse(tokens);
                     assert_eq!(Token::RBRACE, tokens.pop_front().unwrap());
                     alternative
-                },
-                _ => Vec::new()
+                }
+                _ => Vec::new(),
             };
 
             Expression::If {
                 condition: Box::new(condition),
                 consequence,
-                alternative
+                alternative,
             }
-        },
+        }
         Some(Token::MINUS) => Expression::Prefix {
             prefix: Prefix::MINUS,
-            value: Box::new(parse_expression(tokens, Precedence::PREFIX))
+            value: Box::new(parse_expression(tokens, Precedence::PREFIX)),
         },
         Some(Token::BANG) => Expression::Prefix {
             prefix: Prefix::BANG,
-            value: Box::new(parse_expression(tokens, Precedence::PREFIX))
+            value: Box::new(parse_expression(tokens, Precedence::PREFIX)),
         },
         Some(Token::FN) => {
             assert_eq!(Token::LPAREN, tokens.pop_front().unwrap());
@@ -209,11 +223,11 @@ fn parse_expression(tokens: &mut VecDeque<Token>, precedence: Precedence) -> Exp
                         match tokens.pop_front().unwrap() {
                             Token::COMMA => continue,
                             Token::RPAREN => break,
-                            _ => panic!("Unexpected Token in Function Literal.")
+                            _ => panic!("Unexpected Token in Function Literal."),
                         };
-                    },
+                    }
                     Token::RPAREN => break,
-                    _ => panic!("Unexpected Token in Function Literal.")
+                    _ => panic!("Unexpected Token in Function Literal."),
                 }
             }
 
@@ -221,12 +235,9 @@ fn parse_expression(tokens: &mut VecDeque<Token>, precedence: Precedence) -> Exp
             let body = parse(tokens);
             assert_eq!(Token::RBRACE, tokens.pop_front().unwrap());
 
-            Expression::FnLiteral {
-                parameters,
-                body
-            }
-        },
-        _ => panic!("Unexpected token in parse_expression")
+            Expression::FnLiteral { parameters, body }
+        }
+        _ => panic!("Unexpected token in parse_expression"),
     };
 
     let mut next_token = &tokens[0];
@@ -249,7 +260,7 @@ fn parse_infix(tokens: &mut VecDeque<Token>, left: Expression) -> Expression {
         Some(Token::NEQ) => (Operator::NEQUAL, Token::NEQ.precedence()),
         Some(Token::GT) => (Operator::GREATER, Token::GT.precedence()),
         Some(Token::LT) => (Operator::LESS, Token::LT.precedence()),
-        _ => panic!("Parse Infix called on invalid Token.")
+        _ => panic!("Parse Infix called on invalid Token."),
     };
 
     let right_exp = parse_expression(tokens, precedence);
@@ -257,7 +268,7 @@ fn parse_infix(tokens: &mut VecDeque<Token>, left: Expression) -> Expression {
     Expression::Infix {
         left: Box::new(left),
         op,
-        right: Box::new(right_exp)
+        right: Box::new(right_exp),
     }
 }
 
@@ -265,7 +276,7 @@ fn parse_infix(tokens: &mut VecDeque<Token>, left: Expression) -> Expression {
 mod tests {
     use crate::{
         lexer::lexer,
-        parser::{parse, Statement, Expression, Operator, Prefix}
+        parser::{parse, Expression, Operator, Prefix, Statement},
     };
 
     #[test]
@@ -275,9 +286,10 @@ mod tests {
         let mut tokens = lexer(input.as_bytes());
         let statements = parse(&mut tokens);
 
-        let expected = vec![
-            Statement::Let{ name: "var_name".to_owned(), value: Expression::Int(8) }
-        ];
+        let expected = vec![Statement::Let {
+            name: "var_name".to_owned(),
+            value: Expression::Int(8),
+        }];
 
         assert_eq!(expected, statements);
     }
@@ -289,9 +301,9 @@ mod tests {
         let mut tokens = lexer(input.as_bytes());
         let statements = parse(&mut tokens);
 
-        let expected = vec![
-            Statement::Return{ value: Expression::Int(5) }
-        ];
+        let expected = vec![Statement::Return {
+            value: Expression::Int(5),
+        }];
 
         assert_eq!(expected, statements);
     }
@@ -303,17 +315,15 @@ mod tests {
         let mut tokens = lexer(input.as_bytes());
         let statements = parse(&mut tokens);
 
-        let expected = vec![
-            Statement::ExpressionStatement(Expression::Infix {
-                left: Box::new(Expression::Infix {
-                    left: Box::new(Expression::Int(2)),
-                    op: Operator::PLUS,
-                    right: Box::new(Expression::Int(5))
-                }),
+        let expected = vec![Statement::ExpressionStatement(Expression::Infix {
+            left: Box::new(Expression::Infix {
+                left: Box::new(Expression::Int(2)),
                 op: Operator::PLUS,
-                right: Box::new(Expression::Int(8))
-            })
-        ];
+                right: Box::new(Expression::Int(5)),
+            }),
+            op: Operator::PLUS,
+            right: Box::new(Expression::Int(8)),
+        })];
 
         assert_eq!(expected, statements);
     }
@@ -325,17 +335,15 @@ mod tests {
         let mut tokens = lexer(input.as_bytes());
         let statements = parse(&mut tokens);
 
-        let expected = vec![
-            Statement::ExpressionStatement(Expression::Infix {
-                left: Box::new(Expression::Int(2)),
+        let expected = vec![Statement::ExpressionStatement(Expression::Infix {
+            left: Box::new(Expression::Int(2)),
+            op: Operator::PLUS,
+            right: Box::new(Expression::Infix {
+                left: Box::new(Expression::Int(5)),
                 op: Operator::PLUS,
-                right: Box::new(Expression::Infix {
-                    left: Box::new(Expression::Int(5)),
-                    op: Operator::PLUS,
-                    right: Box::new(Expression::Int(8))
-                })
-            })
-        ];
+                right: Box::new(Expression::Int(8)),
+            }),
+        })];
 
         assert_eq!(expected, statements);
     }
@@ -347,17 +355,15 @@ mod tests {
         let mut tokens = lexer(input.as_bytes());
         let statements = parse(&mut tokens);
 
-        let expected = vec![
-            Statement::ExpressionStatement(Expression::Infix {
-                left: Box::new(Expression::Int(1)),
-                op: Operator::PLUS,
-                right: Box::new(Expression::Infix {
-                    left: Box::new(Expression::Int(2)),
-                    op: Operator::MULTIPLY,
-                    right: Box::new(Expression::Int(3))
-                })
-            })
-        ];
+        let expected = vec![Statement::ExpressionStatement(Expression::Infix {
+            left: Box::new(Expression::Int(1)),
+            op: Operator::PLUS,
+            right: Box::new(Expression::Infix {
+                left: Box::new(Expression::Int(2)),
+                op: Operator::MULTIPLY,
+                right: Box::new(Expression::Int(3)),
+            }),
+        })];
 
         assert_eq!(expected, statements);
     }
@@ -369,21 +375,15 @@ mod tests {
         let mut tokens = lexer(input.as_bytes());
         let statements = parse(&mut tokens);
 
-        let expected = vec![
-            Statement::ExpressionStatement(Expression::If {
-                condition: Box::new(Expression::Int(7)),
-                consequence: vec![
-                    Statement::ExpressionStatement(Expression::Infix {
-                        left: Box::new(Expression::Int(1)),
-                        op: Operator::PLUS,
-                        right: Box::new(Expression::Int(3))
-                    })
-                ],
-                alternative: vec![
-                    Statement::ExpressionStatement(Expression::Int(8))
-                ]
-            })
-        ];
+        let expected = vec![Statement::ExpressionStatement(Expression::If {
+            condition: Box::new(Expression::Int(7)),
+            consequence: vec![Statement::ExpressionStatement(Expression::Infix {
+                left: Box::new(Expression::Int(1)),
+                op: Operator::PLUS,
+                right: Box::new(Expression::Int(3)),
+            })],
+            alternative: vec![Statement::ExpressionStatement(Expression::Int(8))],
+        })];
 
         assert_eq!(expected, statements);
     }
@@ -402,15 +402,15 @@ mod tests {
                 name: "a".to_owned(),
                 value: Expression::Prefix {
                     prefix: Prefix::MINUS,
-                    value: Box::new(Expression::Int(33))
-                }
+                    value: Box::new(Expression::Int(33)),
+                },
             },
             Statement::Let {
                 name: "b".to_owned(),
                 value: Expression::Prefix {
                     prefix: Prefix::BANG,
-                    value: Box::new(Expression::Boolean(true))
-                }
+                    value: Box::new(Expression::Boolean(true)),
+                },
             },
             Statement::Let {
                 name: "c".to_owned(),
@@ -418,14 +418,14 @@ mod tests {
                     left: Box::new(Expression::Infix {
                         left: Box::new(Expression::Prefix {
                             prefix: Prefix::MINUS,
-                            value: Box::new(Expression::Int(1))
+                            value: Box::new(Expression::Int(1)),
                         }),
                         op: Operator::PLUS,
-                        right: Box::new(Expression::Int(2))
+                        right: Box::new(Expression::Int(2)),
                     }),
                     op: Operator::PLUS,
-                    right: Box::new(Expression::Int(3))
-                }
+                    right: Box::new(Expression::Int(3)),
+                },
             },
         ];
 
@@ -441,16 +441,12 @@ mod tests {
         let mut tokens = lexer(input.as_bytes());
         let statements = parse(&mut tokens);
 
-        let expected  = vec![
-            Statement::ExpressionStatement(Expression::FnLiteral {
-                parameters: vec!["a".to_owned(), "b".to_owned()],
-                body: vec![
-                    Statement::Return {
-                        value: Expression::Int(23)
-                    }
-                ]
-            })
-        ];
+        let expected = vec![Statement::ExpressionStatement(Expression::FnLiteral {
+            parameters: vec!["a".to_owned(), "b".to_owned()],
+            body: vec![Statement::Return {
+                value: Expression::Int(23),
+            }],
+        })];
 
         assert_eq!(expected, statements);
     }
@@ -462,15 +458,10 @@ mod tests {
         let mut tokens = lexer(input.as_bytes());
         let statements = parse(&mut tokens);
 
-        let expected = vec![
-            Statement::ExpressionStatement(Expression::FnCall {
-                function: Box::new(Expression::Ident("add".to_owned())),
-                args: vec![
-                    Expression::Int(2),
-                    Expression::Int(7)
-                ]
-            })
-        ];
+        let expected = vec![Statement::ExpressionStatement(Expression::FnCall {
+            function: Box::new(Expression::Ident("add".to_owned())),
+            args: vec![Expression::Int(2), Expression::Int(7)],
+        })];
 
         assert_eq!(expected, statements);
     }
@@ -496,40 +487,38 @@ mod tests {
         let expected = vec![
             Statement::Let {
                 name: "x".to_owned(),
-                value: Expression::Int(7)
+                value: Expression::Int(7),
             },
             Statement::Let {
                 name: "hello".to_owned(),
-                value: Expression::Boolean(true)
+                value: Expression::Boolean(true),
             },
             Statement::Let {
                 name: "name".to_owned(),
-                value: Expression::String("spyro".to_owned())
+                value: Expression::String("spyro".to_owned()),
             },
             Statement::ExpressionStatement(Expression::If {
                 condition: Box::new(Expression::Ident("hello".to_owned())),
                 consequence: vec![
                     Statement::Let {
                         name: "y".to_owned(),
-                        value: Expression::Ident("x".to_owned())
+                        value: Expression::Ident("x".to_owned()),
                     },
-                    Statement::ExpressionStatement(Expression::Int(11))
+                    Statement::ExpressionStatement(Expression::Int(11)),
                 ],
-                alternative: vec![
-                    Statement::ExpressionStatement(Expression::Infix {
-                        left: Box::new(Expression::Int(2)),
-                        op: Operator::PLUS,
-                        right: Box::new(Expression::Infix {
-                            left: Box::new(Expression::Int(3)),
-                            op: Operator::MULTIPLY,
-                            right: Box::new(Expression::Int(9))
-                        })
-                    })
-                ]
+                alternative: vec![Statement::ExpressionStatement(Expression::Infix {
+                    left: Box::new(Expression::Int(2)),
+                    op: Operator::PLUS,
+                    right: Box::new(Expression::Infix {
+                        left: Box::new(Expression::Int(3)),
+                        op: Operator::MULTIPLY,
+                        right: Box::new(Expression::Int(9)),
+                    }),
+                })],
             }),
             Statement::Return {
-                value: Expression::Int(1)
-            }
+                value: Expression::Int(1),
+            },
         ];
 
         assert_eq!(expected, statements);

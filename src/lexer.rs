@@ -1,5 +1,6 @@
 use std::collections::VecDeque;
 
+#[rustfmt::skip]
 #[derive(Debug, PartialEq)]
 pub enum Token {
     ILLEGAL,            // Illegal token
@@ -29,13 +30,13 @@ pub enum Token {
     RBRACE,             // '}'
 
     // Keywords
-    FN,                 // Function            
+    FN,                 // Function
     LET,
     IF,
     ELSE,
     RETURN,
     TRUE,
-    FALSE
+    FALSE,
 }
 
 pub fn lexer(input: &[u8]) -> VecDeque<Token> {
@@ -52,7 +53,7 @@ pub fn lexer(input: &[u8]) -> VecDeque<Token> {
                 let (new_pos, token) = read_letters(pos, input);
                 tokens.push_back(token);
                 pos = new_pos;
-            },
+            }
             ch if is_digit(ch) => {
                 let (new_pos, token) = read_digits(pos, input);
                 tokens.push_back(token);
@@ -66,29 +67,32 @@ pub fn lexer(input: &[u8]) -> VecDeque<Token> {
             b',' => tokens.push_back(Token::COMMA),
             b'+' => tokens.push_back(Token::PLUS),
             b'-' => tokens.push_back(Token::MINUS),
-            b'=' => {
-                match peek_next_char(pos, input) {
-                    b'=' => { tokens.push_back(Token::EQ); pos += 1; },
-                    0 => tokens.push_back(Token::EOF),
-                    _ => tokens.push_back(Token::ASSIGN)
+            b'=' => match peek_next_char(pos, input) {
+                b'=' => {
+                    tokens.push_back(Token::EQ);
+                    pos += 1;
                 }
+                0 => tokens.push_back(Token::EOF),
+                _ => tokens.push_back(Token::ASSIGN),
             },
-            b'!' => {
-                match peek_next_char(pos, input) {
-                    b'=' => { tokens.push_back(Token::NEQ); pos += 1; },
-                    0 => tokens.push_back(Token::EOF),
-                    _ => tokens.push_back(Token::BANG)
+            b'!' => match peek_next_char(pos, input) {
+                b'=' => {
+                    tokens.push_back(Token::NEQ);
+                    pos += 1;
                 }
+                0 => tokens.push_back(Token::EOF),
+                _ => tokens.push_back(Token::BANG),
             },
             b'>' => tokens.push_back(Token::GT),
             b'<' => tokens.push_back(Token::LT),
             b'*' => tokens.push_back(Token::ASTERISK),
             b'/' => tokens.push_back(Token::SLASH),
-            39 => { // 39 is the ascii int for the ' character
+            39 => {
+                // 39 is the ascii int for the ' character
                 let (new_pos, token) = read_string(pos, input);
                 tokens.push_back(token);
                 pos = new_pos;
-            },
+            }
             b' ' | b'\n' | b'\r' | b'\t' => (), // Ignore whitespace
             _ => tokens.push_back(Token::ILLEGAL),
         }
@@ -100,6 +104,7 @@ pub fn lexer(input: &[u8]) -> VecDeque<Token> {
 
 // Currently number digits can't be used in identifiers
 // May change this later
+#[rustfmt::skip]
 fn is_letter(ch: u8) -> bool {
     b'a' <= ch && ch <= b'z' ||
     b'A' <= ch && ch <= b'Z' ||
@@ -163,7 +168,7 @@ fn is_keyword(chars: &[u8]) -> Token {
         [b'r', b'e', b't', b'u', b'r', b'n'] => Token::RETURN,
         [b't', b'r', b'u', b'e'] => Token::TRUE,
         [b'f', b'a', b'l', b's', b'e'] => Token::FALSE,
-        chars => Token::IDENT(String::from_utf8_lossy(chars).to_string())
+        chars => Token::IDENT(String::from_utf8_lossy(chars).to_string()),
     }
 }
 
@@ -179,8 +184,8 @@ fn peek_next_char(start_pos: usize, input: &[u8]) -> u8 {
 
 #[cfg(test)]
 mod tests {
+    use crate::lexer::{is_letter, lexer, Token};
     use std::collections::VecDeque;
-    use crate::lexer::{lexer, Token, is_letter};
 
     #[test]
     fn lex_tokens() {
@@ -216,7 +221,7 @@ mod tests {
             Token::INT(3),
             Token::IDENT("ber".to_owned()),
             Token::INT(9),
-            Token::EOF
+            Token::EOF,
         ]);
 
         assert_eq!(expected, tokens);
