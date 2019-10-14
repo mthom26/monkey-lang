@@ -22,13 +22,13 @@ pub enum Expression {
 }
 
 #[derive(Debug, PartialEq)]
-enum Prefix {
+pub enum Prefix {
     BANG,
     MINUS
 }
 
 #[derive(Debug, PartialEq)]
-enum Operator {
+pub enum Operator {
     PLUS,
     MINUS,
     MULTIPLY,
@@ -102,7 +102,7 @@ fn parse_let(tokens: &mut VecDeque<Token>) -> Statement {
 
     match tokens.pop_front() {
         Some(Token::ASSIGN) => (),
-        _ => panic!("Parse error in let statement. Expected Identifier.")
+        _ => panic!("Parse error in let statement. Expected ASSIGN Token.")
     };
 
     let value = parse_expression(tokens, Precedence::LOWEST);
@@ -168,7 +168,7 @@ fn parse_expression(tokens: &mut VecDeque<Token>, precedence: Precedence) -> Exp
             assert_eq!(Token::LPAREN, tokens.pop_front().unwrap());
             let condition = parse_expression(tokens, Precedence::LOWEST);
             assert_eq!(Token::RPAREN, tokens.pop_front().unwrap());
-            println!("CON");
+
             assert_eq!(Token::LBRACE, tokens.pop_front().unwrap());
             let consequence = parse(tokens);
             assert_eq!(Token::RBRACE, tokens.pop_front().unwrap());
@@ -177,7 +177,6 @@ fn parse_expression(tokens: &mut VecDeque<Token>, precedence: Precedence) -> Exp
                 Token::ELSE => {
                     tokens.pop_front();
                     assert_eq!(Token::LBRACE, tokens.pop_front().unwrap());
-                    println!("ALT");
                     let alternative = parse(tokens);
                     assert_eq!(Token::RBRACE, tokens.pop_front().unwrap());
                     alternative
@@ -214,7 +213,7 @@ fn parse_expression(tokens: &mut VecDeque<Token>, precedence: Precedence) -> Exp
                         };
                     },
                     Token::RPAREN => break,
-                    _ => panic!("Unexpected Token in Fn Literal.")
+                    _ => panic!("Unexpected Token in Function Literal.")
                 }
             }
 
