@@ -17,6 +17,7 @@ pub enum Expression {
     Infix { left: Box<Expression>, op: Operator, right: Box<Expression> },
     Prefix { prefix: Prefix, value: Box<Expression> },
     If { condition: Box<Expression>, consequence: Vec<Statement>, alternative: Vec<Statement>},
+    FnLiteral { parameters: Vec<String>, body: Vec<Statement> },
 }
 
 #[derive(Debug, PartialEq)]
@@ -168,6 +169,34 @@ fn parse_expression(tokens: &mut VecDeque<Token>, precedence: Precedence) -> Exp
         Some(Token::BANG) => Expression::Prefix {
             prefix: Prefix::BANG,
             value: Box::new(parse_expression(tokens, Precedence::PREFIX))
+        },
+        Some(Token::FN) => {
+            assert_eq!(Token::LPAREN, tokens.pop_front().unwrap());
+            let mut parameters = vec![];
+
+            loop {
+                match tokens.pop_front().unwrap() {
+                    Token::IDENT(val) => {
+                        parameters.push(val);
+                        match tokens.pop_front().unwrap() {
+                            Token::COMMA => continue,
+                            Token::RPAREN => break,
+                            _ => panic!("Unexpected Token in Function Literal.")
+                        };
+                    },
+                    Token::RPAREN => break,
+                    _ => panic!("Unexpected Token in Fn Literal.")
+                }
+            }
+
+            assert_eq!(Token::LBRACE, tokens.pop_front().unwrap());
+            let body = parse(tokens);
+            assert_eq!(Token::RBRACE, tokens.pop_front().unwrap());
+
+            Expression::FnLiteral {
+                parameters,
+                body
+            }
         },
         _ => panic!("Unexpected token in _parse_expression")
     };
@@ -370,6 +399,29 @@ mod tests {
                     right: Box::new(Expression::Int(3))
                 }
             },
+        ];
+
+        assert_eq!(expected, statements);
+    }
+
+    #[test]
+    fn test_fn_literal() {
+        let input = "fn(a, b) {
+            return 23;
+        }";
+
+        let mut tokens = lexer(input.as_bytes());
+        let statements = parse(&mut tokens);
+
+        let expected  = vec![
+            Statement::ExpressionStatement(Expression::FnLiteral {
+                parameters: vec!["a".to_owned(), "b".to_owned()],
+                body: vec![
+                    Statement::Return {
+                        value: Expression::Int(23)
+                    }
+                ]
+            })
         ];
 
         assert_eq!(expected, statements);
