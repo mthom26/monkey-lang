@@ -1,4 +1,4 @@
-use crate::parser::{Expression, Statement};
+use crate::parser::{Expression, Prefix, Statement};
 
 #[derive(Debug, PartialEq)]
 pub enum Object {
@@ -26,6 +26,16 @@ fn eval_expression(exp: Expression) -> Object {
     match exp {
         Expression::Int(val) => Object::Int(val),
         Expression::Boolean(val) => Object::Boolean(val),
+        Expression::Prefix { prefix, value } => match prefix {
+            Prefix::BANG => match eval_expression(*value) {
+                Object::Boolean(val) => Object::Boolean(!val),
+                _ => panic!("'!' operator only valid for boolean types"),
+            },
+            Prefix::MINUS => match eval_expression(*value) {
+                Object::Int(val) => Object::Int(-val),
+                _ => panic!("'-' operator only valid for integer types"),
+            },
+        },
         _ => panic!("Unexpected Expression in eval_expression"),
     }
 }
@@ -53,6 +63,21 @@ mod tests {
 
         let input = "false";
         let expected = Object::Boolean(false);
+        assert_eq!(expected, evaluated(input));
+    }
+
+    #[test]
+    fn test_prefixes() {
+        let input = "!true";
+        let expected = Object::Boolean(false);
+        assert_eq!(expected, evaluated(input));
+
+        let input = "!!false";
+        let expected = Object::Boolean(false);
+        assert_eq!(expected, evaluated(input));
+
+        let input = "-27";
+        let expected = Object::Int(-27);
         assert_eq!(expected, evaluated(input));
     }
 }
