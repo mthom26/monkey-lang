@@ -74,6 +74,20 @@ fn eval_expression(exp: Expression) -> Object {
                 _ => panic!("Problem in Infix less than check"),
             },
         },
+        Expression::If {
+            condition,
+            consequence,
+            alternative,
+        } => match eval_expression(*condition) {
+            Object::Boolean(true) => eval(consequence),
+            Object::Boolean(false) => {
+                if alternative.len() == 0 {
+                    return Object::Null;
+                }
+                eval(alternative)
+            }
+            _ => panic!("If conditional must evaluate to a boolean"),
+        },
         _ => panic!("Unexpected Expression in eval_expression"),
     }
 }
@@ -163,6 +177,29 @@ mod tests {
 
         let input = "3 < 4";
         let expected = Object::Boolean(true);
+        assert_eq!(expected, evaluated(input));
+    }
+
+    #[test]
+    fn test_if_conditionals() {
+        let input = "if(true) { 1 }";
+        let expected = Object::Int(1);
+        assert_eq!(expected, evaluated(input));
+
+        let input = "if(false) { 1 } else { 2 }";
+        let expected = Object::Int(2);
+        assert_eq!(expected, evaluated(input));
+
+        let input = "if(2 > 1) { true } else { false }";
+        let expected = Object::Boolean(true);
+        assert_eq!(expected, evaluated(input));
+
+        let input = "if(2 < 1) { true } else { false }";
+        let expected = Object::Boolean(false);
+        assert_eq!(expected, evaluated(input));
+
+        let input = "if(2 - 3 + 29 == 4 * 7) { 1 } else { 2 }";
+        let expected = Object::Int(1);
         assert_eq!(expected, evaluated(input));
     }
 }
