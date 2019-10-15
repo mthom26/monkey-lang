@@ -5,6 +5,7 @@ pub enum Object {
     Null,
     Int(isize),
     Boolean(bool),
+    Return(Box<Object>),
 }
 
 pub fn eval(ast: Vec<Statement>) -> Object {
@@ -14,6 +15,10 @@ pub fn eval(ast: Vec<Statement>) -> Object {
         match statement {
             Statement::ExpressionStatement(exp) => {
                 result = eval_expression(exp);
+            }
+            Statement::Return { value } => {
+                result = eval_expression(value);
+                break;
             }
             _ => (),
         }
@@ -200,6 +205,23 @@ mod tests {
 
         let input = "if(2 - 3 + 29 == 4 * 7) { 1 } else { 2 }";
         let expected = Object::Int(1);
+        assert_eq!(expected, evaluated(input));
+    }
+
+    #[test]
+    fn test_return() {
+        let input = "return 2; 7";
+        let expected = Object::Int(2);
+        assert_eq!(expected, evaluated(input));
+
+        // TODO Make this pass
+        let input = "if(true) {
+            if(true) {
+                return 2;
+            }
+            return 1;
+        }";
+        let expected = Object::Int(2);
         assert_eq!(expected, evaluated(input));
     }
 }
