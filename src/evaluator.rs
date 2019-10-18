@@ -8,7 +8,7 @@ pub enum Object {
     Return(Box<Object>),
 }
 
-pub fn eval(ast: Vec<Statement>) -> Object {
+pub fn eval_block(ast: Vec<Statement>) -> Object {
     let mut result = Object::Null;
 
     for statement in ast {
@@ -17,14 +17,28 @@ pub fn eval(ast: Vec<Statement>) -> Object {
                 result = eval_expression(exp);
             }
             Statement::Return { value } => {
-                result = eval_expression(value);
-                break;
+                result = Object::Return(Box::new(eval_expression(value)));
             }
+            _ => (),
+        }
+
+        match result {
+            Object::Return(_) => break,
             _ => (),
         }
     }
 
     result
+}
+
+pub fn eval(ast: Vec<Statement>) -> Object {
+    let result = eval_block(ast);
+
+    // If final result is a Return unwrap it...
+    match result {
+        Object::Return(val) => *val,
+        _ => result,
+    }
 }
 
 fn eval_expression(exp: Expression) -> Object {
@@ -84,12 +98,12 @@ fn eval_expression(exp: Expression) -> Object {
             consequence,
             alternative,
         } => match eval_expression(*condition) {
-            Object::Boolean(true) => eval(consequence),
+            Object::Boolean(true) => eval_block(consequence),
             Object::Boolean(false) => {
                 if alternative.len() == 0 {
                     return Object::Null;
                 }
-                eval(alternative)
+                eval_block(alternative)
             }
             _ => panic!("If conditional must evaluate to a boolean"),
         },
@@ -214,7 +228,6 @@ mod tests {
         let expected = Object::Int(2);
         assert_eq!(expected, evaluated(input));
 
-        // TODO Make this pass
         let input = "if(true) {
             if(true) {
                 return 2;

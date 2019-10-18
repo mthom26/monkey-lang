@@ -20,13 +20,8 @@ fn main() {
                 match evaluated {
                     Object::Int(val) => println!("{}", val),
                     Object::Boolean(val) => println!("{}", val),
-                    Object::Return(val) => match *val {
-                        Object::Int(val) => println!("{}", val),
-                        Object::Boolean(val) => println!("{}", val),
-                        Object::Null => println!("Null"),
-                        _ => panic!("Return error"),
-                    },
                     Object::Null => println!("Null"),
+                    _ => println!("Evaluation Error"),
                 }
             }
             Err(ReadlineError::Interrupted) => break, // 'Ctrl-c' pressed
