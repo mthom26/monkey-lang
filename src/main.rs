@@ -5,17 +5,18 @@ use lexer::lexer;
 mod parser;
 use parser::parse;
 mod evaluator;
-use evaluator::{eval, Object};
+use evaluator::{eval, Environment, Object};
 
 fn main() {
     let mut rl = rustyline::Editor::<()>::new();
+    let mut env = Environment::new();
 
     loop {
         match rl.readline(">> ") {
             Ok(line) => {
                 let mut tokens = lexer(line.as_bytes());
                 let ast = parse(&mut tokens);
-                let evaluated = eval(ast);
+                let evaluated = eval(ast, &mut env);
 
                 match evaluated {
                     Object::Int(val) => println!("{}", val),
