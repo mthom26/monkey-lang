@@ -121,6 +121,25 @@ fn eval_expression(exp: Expression, env: &mut Environment) -> Object {
         },
         Expression::Ident(name) => env.get(&name),
         Expression::FnLiteral { parameters, body } => Object::Function { parameters, body },
+        Expression::FnCall { function, args } => {
+            let (parameters, body) = match *function {
+                Expression::Ident(name) => match env.get(&name) {
+                    Object::Function { parameters, body } => (parameters, body),
+                    _ => panic!("Attempted to call non-function"),
+                },
+                Expression::FnLiteral { parameters, body } => (parameters, body),
+                _ => panic!("Error calling function"),
+            };
+
+            assert_eq!(parameters.len(), args.len());
+
+            let mut func_env = Environment::new();
+            for (paramater, arg) in parameters.into_iter().zip(args.into_iter()) {
+                func_env.set(paramater, eval_expression(arg, env));
+            }
+
+            eval(body, &mut func_env)
+        }
         _ => panic!("Unexpected Expression in eval_expression"),
     }
 }
@@ -278,6 +297,17 @@ mod tests {
                 value: Expression::Boolean(true),
             }],
         };
+        assert_eq!(expected, evaluated(input));
+    }
+
+    #[test]
+    fn test_fn_calls() {
+        let input = "let ret = fn(x) { return x; }; ret(5)";
+        let expected = Object::Int(5);
+        assert_eq!(expected, evaluated(input));
+
+        let input = "let ret = fn(x, y) { return x + y; }; ret(5, 9)";
+        let expected = Object::Int(14);
         assert_eq!(expected, evaluated(input));
     }
 }
