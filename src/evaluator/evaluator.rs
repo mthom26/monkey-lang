@@ -7,6 +7,10 @@ pub enum Object {
     Int(isize),
     Boolean(bool),
     Return(Box<Object>),
+    Function {
+        parameters: Vec<String>,
+        body: Vec<Statement>,
+    },
 }
 
 pub fn eval_block(ast: Vec<Statement>, env: &mut Environment) -> Object {
@@ -116,6 +120,7 @@ fn eval_expression(exp: Expression, env: &mut Environment) -> Object {
             _ => panic!("If conditional must evaluate to a boolean"),
         },
         Expression::Ident(name) => env.get(&name),
+        Expression::FnLiteral { parameters, body } => Object::Function { parameters, body },
         _ => panic!("Unexpected Expression in eval_expression"),
     }
 }
@@ -125,7 +130,7 @@ mod tests {
     use crate::{
         evaluator::{eval, Environment, Object},
         lexer::lexer,
-        parser::parse,
+        parser::{parse, Expression, Statement},
     };
 
     // Convenience function to lex, parse and eval an input
@@ -252,6 +257,27 @@ mod tests {
     fn test_env() {
         let input = "let a = 3; return a;";
         let expected = Object::Int(3);
+        assert_eq!(expected, evaluated(input));
+    }
+
+    #[test]
+    fn test_fn_literals() {
+        let input = "fn() { return 1; }";
+        let expected = Object::Function {
+            parameters: vec![],
+            body: vec![Statement::Return {
+                value: Expression::Int(1),
+            }],
+        };
+        assert_eq!(expected, evaluated(input));
+
+        let input = "fn(a, b) { return true; }";
+        let expected = Object::Function {
+            parameters: vec!["a".to_owned(), "b".to_owned()],
+            body: vec![Statement::Return {
+                value: Expression::Boolean(true),
+            }],
+        };
         assert_eq!(expected, evaluated(input));
     }
 }

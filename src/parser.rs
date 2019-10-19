@@ -1,14 +1,14 @@
 use crate::lexer::Token;
 use std::collections::VecDeque;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Statement {
     Let { name: String, value: Expression },
     Return { value: Expression },
     ExpressionStatement(Expression),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Expression {
     Int(isize),
     Boolean(bool),
@@ -38,13 +38,13 @@ pub enum Expression {
     },
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Prefix {
     BANG,
     MINUS,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Operator {
     PLUS,
     MINUS,
