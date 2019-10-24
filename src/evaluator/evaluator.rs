@@ -6,6 +6,7 @@ pub enum Object {
     Null,
     Int(isize),
     Boolean(bool),
+    String(String),
     Return(Box<Object>),
     Function {
         parameters: Vec<String>,
@@ -54,6 +55,7 @@ fn eval_expression(exp: Expression, env: &mut Environment) -> Object {
     match exp {
         Expression::Int(val) => Object::Int(val),
         Expression::Boolean(val) => Object::Boolean(val),
+        Expression::String(val) => Object::String(val),
         Expression::Prefix { prefix, value } => match prefix {
             Prefix::BANG => match eval_expression(*value, env) {
                 Object::Boolean(val) => Object::Boolean(!val),
@@ -168,6 +170,10 @@ mod tests {
 
         let input = "false";
         let expected = Object::Boolean(false);
+        assert_eq!(expected, evaluated(input));
+
+        let input = "'hello'";
+        let expected = Object::String("hello".to_owned());
         assert_eq!(expected, evaluated(input));
     }
 
