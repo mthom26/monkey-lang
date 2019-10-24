@@ -12,9 +12,8 @@ impl Environment {
         }
     }
 
-    pub fn get(&self, key: &str) -> Object {
-        // TODO Handle getting non existant key properly...
-        let val = self.store.get(key).unwrap_or(&Object::Null);
+    pub fn get(&self, key: &str) -> Option<Object> {
+        let val = self.store.get(key).map(|val| val.clone());
         val.clone()
     }
 

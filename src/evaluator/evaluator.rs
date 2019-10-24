@@ -121,12 +121,22 @@ fn eval_expression(exp: Expression, env: &mut Environment) -> Object {
             }
             _ => panic!("If conditional must evaluate to a boolean"),
         },
-        Expression::Ident(name) => env.get(&name),
+        Expression::Ident(name) => env
+            .get(&name)
+            .expect("Attempted to access invalid variable"),
         Expression::FnLiteral { parameters, body } => Object::Function { parameters, body },
         Expression::FnCall { function, args } => {
             let (parameters, body) = match *function {
                 Expression::Ident(name) => match env.get(&name) {
-                    Object::Function { parameters, body } => (parameters, body),
+                    Some(Object::Function { parameters, body }) => (parameters, body),
+                    None => {
+                        // Handle built in functions
+                        let args = args
+                            .into_iter()
+                            .map(|exp| eval_expression(exp, env))
+                            .collect();
+                        return eval_builtin(&name, args);
+                    }
                     _ => panic!("Attempted to call non-function"),
                 },
                 Expression::FnLiteral { parameters, body } => (parameters, body),
@@ -142,7 +152,15 @@ fn eval_expression(exp: Expression, env: &mut Environment) -> Object {
 
             eval(body, &mut func_env)
         }
-        _ => panic!("Unexpected Expression in eval_expression"),
+    }
+}
+
+fn eval_builtin(fn_name: &str, args: Vec<Object>) -> Object {
+    match (fn_name, args.as_slice()) {
+        ("len", [Object::String(val)]) => Object::Int(val.len() as isize),
+        ("lowerCase", [Object::String(val)]) => Object::String(val.to_lowercase()),
+        ("upperCase", [Object::String(val)]) => Object::String(val.to_uppercase()),
+        _ => Object::Null,
     }
 }
 
@@ -314,6 +332,21 @@ mod tests {
 
         let input = "let ret = fn(x, y) { return x + y; }; ret(5, 9)";
         let expected = Object::Int(14);
+        assert_eq!(expected, evaluated(input));
+    }
+
+    #[test]
+    fn test_builtins() {
+        let input = "let str = 'hello'; len(str)";
+        let expected = Object::Int(5);
+        assert_eq!(expected, evaluated(input));
+
+        let input = "let str = 'hello'; upperCase(str)";
+        let expected = Object::String("HELLO".to_owned());
+        assert_eq!(expected, evaluated(input));
+
+        let input = "let str = 'hElLO'; lowerCase(str)";
+        let expected = Object::String("hello".to_owned());
         assert_eq!(expected, evaluated(input));
     }
 }
