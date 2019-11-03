@@ -6,6 +6,7 @@ mod parser;
 use parser::parse;
 mod evaluator;
 use evaluator::{eval, Environment, Object};
+mod compiler;
 
 fn main() {
     let mut rl = rustyline::Editor::<()>::new();
