@@ -5,8 +5,8 @@ use crate::parser::{parse, Expression, Statement};
 
 #[derive(Debug, PartialEq)]
 pub struct ByteCode {
-    instructions: Vec<u8>,
-    constants: Vec<Object>,
+    pub instructions: Vec<u8>,
+    pub constants: Vec<Object>,
 }
 
 impl ByteCode {
@@ -23,7 +23,7 @@ pub struct Compiler {
 }
 
 impl Compiler {
-    fn from_source(input: &str) -> ByteCode {
+    pub fn from_source(input: &str) -> ByteCode {
         let mut compiler = Compiler {
             byte_code: ByteCode::new(),
         };
@@ -61,7 +61,7 @@ impl Compiler {
     // Add a value to the byte code constants and return the new index
     fn add_constant(&mut self, object: Object) -> u16 {
         self.byte_code.constants.push(object);
-        self.byte_code.constants.len() as u16
+        (self.byte_code.constants.len() - 1) as u16
     }
 
     // Add instruction to byte code instructions and return instruction position
@@ -89,7 +89,7 @@ mod tests {
     fn test_basic_expression() {
         let input = "3";
         let expected = ByteCode {
-            instructions: vec![1, 0, 1],
+            instructions: vec![1, 0, 0],
             constants: vec![Object::Int(3)],
         };
 
