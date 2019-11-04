@@ -36,6 +36,16 @@ impl Vm {
                     self.push(self.constants[const_index].clone());
                     ip += 3;
                 }
+                0x02 => {
+                    // OpAdd
+                    match (self.pop(), self.pop()) {
+                        (Object::Int(right), Object::Int(left)) => {
+                            self.push(Object::Int(left + right));
+                        }
+                        _ => panic!("Invalid OpAdd operand"),
+                    };
+                    ip += 1;
+                }
                 invalid => panic!("Invalid instruction: {}", invalid),
             }
         }
@@ -48,6 +58,11 @@ impl Vm {
 
         self.stack[self.stack_pointer] = obj;
         self.stack_pointer += 1;
+    }
+
+    fn pop(&mut self) -> Object {
+        self.stack_pointer -= 1;
+        self.stack[self.stack_pointer].clone()
     }
 }
 
@@ -64,11 +79,15 @@ mod tests {
     }
 
     #[test]
-    fn test_enum() {
+    fn test_basics() {
         let input = "7";
         let mut vm = Vm::new(compiled(input));
         vm.run();
-
         assert_eq!(Object::Int(7), vm.stack[0]);
+
+        let input = "1 + 2";
+        let mut vm = Vm::new(compiled(input));
+        vm.run();
+        assert_eq!(Object::Int(3), vm.stack[0]);
     }
 }

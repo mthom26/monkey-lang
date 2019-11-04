@@ -1,7 +1,7 @@
 use crate::compiler::{make_op, OpCode};
 use crate::evaluator::Object;
 use crate::lexer::lexer;
-use crate::parser::{parse, Expression, Statement};
+use crate::parser::{parse, Expression, Operator, Statement};
 
 #[derive(Debug, PartialEq)]
 pub struct ByteCode {
@@ -53,7 +53,15 @@ impl Compiler {
                 let index = self.add_constant(Object::Int(val));
                 self.add_instruction(OpCode::OpConstant(index));
             }
-            Expression::Infix { left, op, right } => {}
+            Expression::Infix { left, op, right } => {
+                self.compile_expression(*left);
+                self.compile_expression(*right);
+
+                match op {
+                    Operator::PLUS => self.add_instruction(OpCode::OpAdd),
+                    _ => unimplemented!(),
+                };
+            }
             _ => unimplemented!(),
         }
     }
@@ -86,13 +94,33 @@ mod tests {
     }
 
     #[test]
-    fn test_basic_expression() {
+    fn test_basic_expressions() {
         let input = "3";
         let expected = ByteCode {
             instructions: vec![1, 0, 0],
             constants: vec![Object::Int(3)],
         };
+        assert_eq!(expected, compiled(input));
 
+        let input = "1 + 2";
+        let expected = ByteCode {
+            instructions: vec![1, 0, 0, 1, 0, 1, 2],
+            constants: vec![Object::Int(1), Object::Int(2)],
+        };
+        assert_eq!(expected, compiled(input));
+
+        let input = "1 + 2 + 3";
+        #[rustfmt::skip]
+        let expected = ByteCode {
+            instructions: vec![
+                1, 0, 0, // Int 1
+                1, 0, 1, // Int 2
+                2,       // OpAdd
+                1, 0, 2, // Int 3
+                2,       // OpAdd
+            ],
+            constants: vec![Object::Int(1), Object::Int(2), Object::Int(3)],
+        };
         assert_eq!(expected, compiled(input));
     }
 }
