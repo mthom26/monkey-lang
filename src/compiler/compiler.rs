@@ -1,7 +1,9 @@
-use crate::compiler::{make_op, OpCode};
-use crate::evaluator::Object;
-use crate::lexer::lexer;
-use crate::parser::{parse, Expression, Operator, Statement};
+use crate::{
+    compiler::{make_op, OpCode},
+    evaluator::Object,
+    lexer::lexer,
+    parser::{parse, Expression, Operator, Statement},
+};
 
 #[derive(Debug, PartialEq)]
 pub struct ByteCode {

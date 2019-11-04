@@ -1,5 +1,7 @@
-use crate::evaluator::Environment;
-use crate::parser::{Expression, Operator, Prefix, Statement};
+use crate::{
+    evaluator::Environment,
+    parser::{Expression, Operator, Prefix, Statement},
+};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Object {
