@@ -103,6 +103,10 @@ pub fn parse(tokens: &mut VecDeque<Token>) -> Vec<Statement> {
             Token::RBRACE => break, // We must be at end of a block so break
             _ => {
                 let exp = parse_expression(tokens, Precedence::LOWEST);
+                // Optional semi colon expression termination
+                if &tokens[0] == &Token::SEMICOLON {
+                    tokens.pop_front();
+                }
                 statements.push(Statement::ExpressionStatement(exp));
             }
         }
@@ -241,6 +245,11 @@ fn parse_expression(tokens: &mut VecDeque<Token>, precedence: Precedence) -> Exp
     };
 
     let mut next_token = &tokens[0];
+    // Now expressions can be ended with or without a semi colon
+    if next_token == &Token::SEMICOLON {
+        return left_exp;
+    }
+
     while precedence < next_token.precedence() {
         left_exp = parse_infix(tokens, left_exp);
         next_token = &tokens[0];
@@ -324,6 +333,22 @@ mod tests {
             op: Operator::PLUS,
             right: Box::new(Expression::Int(8)),
         })];
+
+        assert_eq!(expected, statements);
+    }
+
+    #[test]
+    fn parse_multiple_epressions() {
+        let input = "1; 2; 3;";
+
+        let mut tokens = lexer(input.as_bytes());
+        let statements = parse(&mut tokens);
+
+        let expected = vec![
+            Statement::ExpressionStatement(Expression::Int(1)),
+            Statement::ExpressionStatement(Expression::Int(2)),
+            Statement::ExpressionStatement(Expression::Int(3)),
+        ];
 
         assert_eq!(expected, statements);
     }
