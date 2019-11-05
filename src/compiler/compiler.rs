@@ -56,6 +56,12 @@ impl Compiler {
                 let index = self.add_constant(Object::Int(val));
                 self.add_instruction(OpCode::OpConstant(index));
             }
+            Expression::Boolean(val) => {
+                match val {
+                    true => self.add_instruction(OpCode::OpTrue),
+                    false => self.add_instruction(OpCode::OpFalse),
+                };
+            }
             Expression::Infix { left, op, right } => {
                 self.compile_expression(*left);
                 self.compile_expression(*right);
@@ -159,6 +165,23 @@ mod tests {
                 Object::Int(3),
                 Object::Int(4),
             ],
+        };
+        assert_eq!(expected, compiled(input));
+    }
+
+    #[test]
+    fn test_booleans() {
+        let input = "true";
+        let expected = ByteCode {
+            instructions: vec![7, 6],
+            constants: vec![]
+        };
+        assert_eq!(expected, compiled(input));
+
+        let input = "false;";
+        let expected = ByteCode {
+            instructions: vec![8, 6],
+            constants: vec![]
         };
         assert_eq!(expected, compiled(input));
     }

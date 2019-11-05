@@ -82,6 +82,16 @@ impl Vm {
                     self.pop();
                     ip += 1;
                 }
+                0x07 => {
+                    // OpTrue
+                    self.push(Object::Boolean(true));
+                    ip += 1;
+                }
+                0x08 => {
+                    // OpFalse
+                    self.push(Object::Boolean(false));
+                    ip += 1;
+                }
                 invalid => panic!("Invalid instruction: {}", invalid),
             }
         }
@@ -148,5 +158,15 @@ mod tests {
         let mut vm = Vm::new(compiled(input));
         vm.run();
         assert_eq!(Object::Int(3), vm.stack[0]);
+
+        let input = "false";
+        let mut vm = Vm::new(compiled(input));
+        vm.run();
+        assert_eq!(Object::Boolean(false), vm.stack[0]);
+
+        let input = "true;";
+        let mut vm = Vm::new(compiled(input));
+        vm.run();
+        assert_eq!(Object::Boolean(true), vm.stack[0]);
     }
 }
