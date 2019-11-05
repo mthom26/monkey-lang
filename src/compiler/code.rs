@@ -7,6 +7,12 @@ pub enum OpCode {
     OpPop,
     OpTrue,
     OpFalse,
+    OpGreater,
+    OpLess,
+    OpEqual,
+    OpNotEqual,
+    OpBang,
+    OpMinus,
 }
 
 pub fn make_op(opcode: OpCode) -> Vec<u8> {
@@ -26,6 +32,12 @@ pub fn make_op(opcode: OpCode) -> Vec<u8> {
         OpCode::OpPop => vec![0x06],
         OpCode::OpTrue => vec![0x07],
         OpCode::OpFalse => vec![0x08],
+        OpCode::OpGreater => vec![0x09],
+        OpCode::OpLess => vec![0x0a],
+        OpCode::OpEqual => vec![0x0b],
+        OpCode::OpNotEqual => vec![0x0c],
+        OpCode::OpBang => vec![0x0d],
+        OpCode::OpMinus => vec![0x0e],
     }
 }
 
@@ -76,6 +88,30 @@ mod tests {
 
         let op = make_op(OpCode::OpFalse);
         let expected = vec![0x08];
+        assert_eq!(expected, op);
+
+        let op = make_op(OpCode::OpGreater);
+        let expected = vec![0x09];
+        assert_eq!(expected, op);
+
+        let op = make_op(OpCode::OpLess);
+        let expected = vec![0x0a];
+        assert_eq!(expected, op);
+
+        let op = make_op(OpCode::OpEqual);
+        let expected = vec![0x0b];
+        assert_eq!(expected, op);
+
+        let op = make_op(OpCode::OpNotEqual);
+        let expected = vec![0x0c];
+        assert_eq!(expected, op);
+
+        let op = make_op(OpCode::OpBang);
+        let expected = vec![0x0d];
+        assert_eq!(expected, op);
+
+        let op = make_op(OpCode::OpMinus);
+        let expected = vec![0x0e];
         assert_eq!(expected, op);
     }
 

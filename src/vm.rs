@@ -92,6 +92,62 @@ impl Vm {
                     self.push(Object::Boolean(false));
                     ip += 1;
                 }
+                0x09 => {
+                    // OpGreater
+                    match (self.pop(), self.pop()) {
+                        (Object::Int(right), Object::Int(left)) => {
+                            self.push(Object::Boolean(left > right));
+                        }
+                        _ => panic!("Invalid OpGreater operand"),
+                    };
+                    ip += 1;
+                }
+                0x0a => {
+                    // OpLess
+                    match (self.pop(), self.pop()) {
+                        (Object::Int(right), Object::Int(left)) => {
+                            self.push(Object::Boolean(left < right));
+                        }
+                        _ => panic!("Invalid OpLess operand"),
+                    };
+                    ip += 1;
+                }
+                0x0b => {
+                    // OpEqual
+                    match (self.pop(), self.pop()) {
+                        (Object::Int(right), Object::Int(left)) => {
+                            self.push(Object::Boolean(left == right));
+                        }
+                        _ => panic!("Invalid OpEqual operand"),
+                    };
+                    ip += 1;
+                }
+                0x0c => {
+                    // OpNotEqual
+                    match (self.pop(), self.pop()) {
+                        (Object::Int(right), Object::Int(left)) => {
+                            self.push(Object::Boolean(left != right));
+                        }
+                        _ => panic!("Invalid OpNotEqual operand"),
+                    };
+                    ip += 1;
+                }
+                0x0d => {
+                    // OpBang
+                    match self.pop() {
+                        Object::Boolean(val) => self.push(Object::Boolean(!val)),
+                        _ => panic!("Invalid OpBang operand"),
+                    };
+                    ip += 1;
+                }
+                0x0e => {
+                    // OpMinus
+                    match self.pop() {
+                        Object::Int(val) => self.push(Object::Int(-val)),
+                        _ => panic!("Invalid OpMinus operand"),
+                    };
+                    ip += 1;
+                }
                 invalid => panic!("Invalid instruction: {}", invalid),
             }
         }
@@ -165,6 +221,47 @@ mod tests {
         assert_eq!(Object::Boolean(false), vm.stack[0]);
 
         let input = "true;";
+        let mut vm = Vm::new(compiled(input));
+        vm.run();
+        assert_eq!(Object::Boolean(true), vm.stack[0]);
+    }
+
+    #[test]
+    fn test_comparisons() {
+        let input = "1 < 2";
+        let mut vm = Vm::new(compiled(input));
+        vm.run();
+        assert_eq!(Object::Boolean(true), vm.stack[0]);
+
+        let input = "1 > 2";
+        let mut vm = Vm::new(compiled(input));
+        vm.run();
+        assert_eq!(Object::Boolean(false), vm.stack[0]);
+
+        let input = "3 == 3";
+        let mut vm = Vm::new(compiled(input));
+        vm.run();
+        assert_eq!(Object::Boolean(true), vm.stack[0]);
+
+        let input = "3 != 7";
+        let mut vm = Vm::new(compiled(input));
+        vm.run();
+        assert_eq!(Object::Boolean(true), vm.stack[0]);
+    }
+
+    #[test]
+    fn test_prefixes() {
+        let input = "-2";
+        let mut vm = Vm::new(compiled(input));
+        vm.run();
+        assert_eq!(Object::Int(-2), vm.stack[0]);
+
+        let input = "!true";
+        let mut vm = Vm::new(compiled(input));
+        vm.run();
+        assert_eq!(Object::Boolean(false), vm.stack[0]);
+
+        let input = "!!true";
         let mut vm = Vm::new(compiled(input));
         vm.run();
         assert_eq!(Object::Boolean(true), vm.stack[0]);

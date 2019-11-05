@@ -2,7 +2,7 @@ use crate::{
     compiler::{make_op, OpCode},
     evaluator::Object,
     lexer::lexer,
-    parser::{parse, Expression, Operator, Statement},
+    parser::{parse, Expression, Operator, Prefix, Statement},
 };
 
 #[derive(Debug, PartialEq)]
@@ -71,7 +71,18 @@ impl Compiler {
                     Operator::MINUS => self.add_instruction(OpCode::OpSub),
                     Operator::MULTIPLY => self.add_instruction(OpCode::OpMul),
                     Operator::DIVIDE => self.add_instruction(OpCode::OpDiv),
-                    _ => unimplemented!(),
+                    Operator::GREATER => self.add_instruction(OpCode::OpGreater),
+                    Operator::LESS => self.add_instruction(OpCode::OpLess),
+                    Operator::EQUAL => self.add_instruction(OpCode::OpEqual),
+                    Operator::NEQUAL => self.add_instruction(OpCode::OpNotEqual),
+                };
+            }
+            Expression::Prefix { prefix, value } => {
+                self.compile_expression(*value);
+
+                match prefix {
+                    Prefix::MINUS => self.add_instruction(OpCode::OpMinus),
+                    Prefix::BANG => self.add_instruction(OpCode::OpBang),
                 };
             }
             _ => unimplemented!(),
@@ -174,14 +185,62 @@ mod tests {
         let input = "true";
         let expected = ByteCode {
             instructions: vec![7, 6],
-            constants: vec![]
+            constants: vec![],
         };
         assert_eq!(expected, compiled(input));
 
         let input = "false;";
         let expected = ByteCode {
             instructions: vec![8, 6],
-            constants: vec![]
+            constants: vec![],
+        };
+        assert_eq!(expected, compiled(input));
+    }
+
+    #[test]
+    fn test_comparison_operators() {
+        let input = "1 > 2";
+        let expected = ByteCode {
+            instructions: vec![1, 0, 0, 1, 0, 1, 9, 6],
+            constants: vec![Object::Int(1), Object::Int(2)],
+        };
+        assert_eq!(expected, compiled(input));
+
+        let input = "1 < 2";
+        let expected = ByteCode {
+            instructions: vec![1, 0, 0, 1, 0, 1, 10, 6],
+            constants: vec![Object::Int(1), Object::Int(2)],
+        };
+        assert_eq!(expected, compiled(input));
+
+        let input = "1 == 2";
+        let expected = ByteCode {
+            instructions: vec![1, 0, 0, 1, 0, 1, 11, 6],
+            constants: vec![Object::Int(1), Object::Int(2)],
+        };
+        assert_eq!(expected, compiled(input));
+
+        let input = "1 != 2";
+        let expected = ByteCode {
+            instructions: vec![1, 0, 0, 1, 0, 1, 12, 6],
+            constants: vec![Object::Int(1), Object::Int(2)],
+        };
+        assert_eq!(expected, compiled(input));
+    }
+
+    #[test]
+    fn test_prefixes() {
+        let input = "-1";
+        let expected = ByteCode {
+            instructions: vec![1, 0, 0, 14, 6],
+            constants: vec![Object::Int(1)],
+        };
+        assert_eq!(expected, compiled(input));
+
+        let input = "!false";
+        let expected = ByteCode {
+            instructions: vec![8, 13, 6],
+            constants: vec![],
         };
         assert_eq!(expected, compiled(input));
     }
