@@ -61,6 +61,9 @@ impl Compiler {
 
                 match op {
                     Operator::PLUS => self.add_instruction(OpCode::OpAdd),
+                    Operator::MINUS => self.add_instruction(OpCode::OpSub),
+                    Operator::MULTIPLY => self.add_instruction(OpCode::OpMul),
+                    Operator::DIVIDE => self.add_instruction(OpCode::OpDiv),
                     _ => unimplemented!(),
                 };
             }
@@ -122,6 +125,37 @@ mod tests {
                 2,       // OpAdd
             ],
             constants: vec![Object::Int(1), Object::Int(2), Object::Int(3)],
+        };
+        assert_eq!(expected, compiled(input));
+
+        let input = "1 - 2";
+        let expected = ByteCode {
+            instructions: vec![1, 0, 0, 1, 0, 1, 3],
+            constants: vec![Object::Int(1), Object::Int(2)],
+        };
+        assert_eq!(expected, compiled(input));
+
+        let input = "1 * 2 - 3 / 3 + 4";
+        #[rustfmt::skip]
+        let expected = ByteCode {
+            instructions: vec![
+                1, 0, 0, // Int 1
+                1, 0, 1, // Int 2
+                4,       // OpMul
+                1, 0, 2, // Int 3
+                1, 0, 3, // Int 3
+                5,       // OpDiv
+                3,       // OpSub
+                1, 0, 4, // Int 4
+                2,       // OpAdd
+            ],
+            constants: vec![
+                Object::Int(1),
+                Object::Int(2),
+                Object::Int(3),
+                Object::Int(3),
+                Object::Int(4),
+            ],
         };
         assert_eq!(expected, compiled(input));
     }

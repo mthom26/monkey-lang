@@ -1,6 +1,9 @@
 pub enum OpCode {
     OpConstant(u16),
     OpAdd,
+    OpSub,
+    OpMul,
+    OpDiv,
 }
 
 pub fn make_op(opcode: OpCode) -> Vec<u8> {
@@ -13,10 +16,10 @@ pub fn make_op(opcode: OpCode) -> Vec<u8> {
             output.push(int_two);
             output
         }
-        OpCode::OpAdd => {
-            let mut output = vec![0x02];
-            output
-        }
+        OpCode::OpAdd => vec![0x02],
+        OpCode::OpSub => vec![0x03],
+        OpCode::OpMul => vec![0x04],
+        OpCode::OpDiv => vec![0x05],
     }
 }
 
@@ -43,6 +46,18 @@ mod tests {
     fn make_ops() {
         let op = make_op(OpCode::OpAdd);
         let expected = vec![0x02];
+        assert_eq!(expected, op);
+
+        let op = make_op(OpCode::OpSub);
+        let expected = vec![0x03];
+        assert_eq!(expected, op);
+
+        let op = make_op(OpCode::OpMul);
+        let expected = vec![0x04];
+        assert_eq!(expected, op);
+
+        let op = make_op(OpCode::OpDiv);
+        let expected = vec![0x05];
         assert_eq!(expected, op);
     }
 

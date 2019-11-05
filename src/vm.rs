@@ -46,6 +46,37 @@ impl Vm {
                     };
                     ip += 1;
                 }
+                0x03 => {
+                    // OpSub
+                    match (self.pop(), self.pop()) {
+                        (Object::Int(right), Object::Int(left)) => {
+                            self.push(Object::Int(left - right));
+                        }
+                        _ => panic!("Invalid OpSub operand"),
+                    };
+                    ip += 1;
+                }
+                0x04 => {
+                    // OpMul
+                    match (self.pop(), self.pop()) {
+                        (Object::Int(right), Object::Int(left)) => {
+                            self.push(Object::Int(left * right));
+                        }
+                        _ => panic!("Invalid OpMul operand"),
+                    };
+                    ip += 1;
+                }
+                0x05 => {
+                    // OpDiv
+                    match (self.pop(), self.pop()) {
+                        (Object::Int(right), Object::Int(left)) => {
+                            // TODO Handle remainders, currently they are truncated
+                            self.push(Object::Int(left / right));
+                        }
+                        _ => panic!("Invalid OpDiv operand"),
+                    };
+                    ip += 1;
+                }
                 invalid => panic!("Invalid instruction: {}", invalid),
             }
         }
@@ -89,5 +120,15 @@ mod tests {
         let mut vm = Vm::new(compiled(input));
         vm.run();
         assert_eq!(Object::Int(3), vm.stack[0]);
+
+        let input = "2 * 3";
+        let mut vm = Vm::new(compiled(input));
+        vm.run();
+        assert_eq!(Object::Int(6), vm.stack[0]);
+
+        let input = "2 * 2 + 6 / 2 - 9";
+        let mut vm = Vm::new(compiled(input));
+        vm.run();
+        assert_eq!(Object::Int(-2), vm.stack[0]);
     }
 }
