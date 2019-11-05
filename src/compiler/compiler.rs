@@ -85,6 +85,31 @@ impl Compiler {
                     Prefix::BANG => self.add_instruction(OpCode::OpBang),
                 };
             }
+            Expression::If {
+                condition,
+                consequence,
+                alternative,
+            } => {
+                self.compile_expression(*condition);
+
+                let jmp_pos = self.byte_code.instructions.len();
+                self.add_instruction(OpCode::OpJmpIfFalse(9999));
+
+                // Consequence
+                self.compile_statements(consequence);
+                if self.is_last_instruction_pop() {
+                    self.remove_last_pop();
+                }
+
+                // Alternative
+                if alternative.len() == 0 {
+                    // No alternative
+                    let new_jmp_pos = self.byte_code.instructions.len() as u16;
+                    self.replace_op(jmp_pos, OpCode::OpJmpIfFalse(new_jmp_pos));
+                } else {
+                    // TODO Handle alternative
+                }
+            }
             _ => unimplemented!(),
         }
     }
@@ -102,6 +127,23 @@ impl Compiler {
 
         self.byte_code.instructions.extend(op_bytes);
         new_instruction_position as u16
+    }
+
+    fn is_last_instruction_pop(&self) -> bool {
+        self.byte_code.instructions.last() == Some(&make_op(OpCode::OpPop)[0])
+    }
+
+    fn remove_last_pop(&mut self) {
+        self.byte_code.instructions.pop();
+    }
+
+    // This can only be used on OpCodes that output the same number of bytes
+    fn replace_op(&mut self, pos: usize, opcode: OpCode) {
+        let bytes = make_op(opcode);
+        // Replace each byte
+        for (i, byte) in bytes.iter().enumerate() {
+            self.byte_code.instructions[pos + i] = *byte;
+        }
     }
 }
 
@@ -241,6 +283,16 @@ mod tests {
         let expected = ByteCode {
             instructions: vec![8, 13, 6],
             constants: vec![],
+        };
+        assert_eq!(expected, compiled(input));
+    }
+
+    #[test]
+    fn test_if() {
+        let input = "if(true) { 10 }";
+        let expected = ByteCode {
+            instructions: vec![7, 16, 0, 7, 1, 0, 0, 6],
+            constants: vec![Object::Int(10)],
         };
         assert_eq!(expected, compiled(input));
     }

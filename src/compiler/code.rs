@@ -13,6 +13,8 @@ pub enum OpCode {
     OpNotEqual,
     OpBang,
     OpMinus,
+    OpJmp(u16),
+    OpJmpIfFalse(u16),
 }
 
 pub fn make_op(opcode: OpCode) -> Vec<u8> {
@@ -38,6 +40,22 @@ pub fn make_op(opcode: OpCode) -> Vec<u8> {
         OpCode::OpNotEqual => vec![0x0c],
         OpCode::OpBang => vec![0x0d],
         OpCode::OpMinus => vec![0x0e],
+        OpCode::OpJmp(operand) => {
+            let mut output = vec![0x0f];
+            let int_one = (operand >> 8) as u8;
+            let int_two = operand as u8;
+            output.push(int_one);
+            output.push(int_two);
+            output
+        }
+        OpCode::OpJmpIfFalse(operand) => {
+            let mut output = vec![0x10];
+            let int_one = (operand >> 8) as u8;
+            let int_two = operand as u8;
+            output.push(int_one);
+            output.push(int_two);
+            output
+        }
     }
 }
 
@@ -112,6 +130,17 @@ mod tests {
 
         let op = make_op(OpCode::OpMinus);
         let expected = vec![0x0e];
+        assert_eq!(expected, op);
+    }
+
+    #[test]
+    fn test_jumps() {
+        let op = make_op(OpCode::OpJmp(65534));
+        let expected = vec![0x0f, 255, 254];
+        assert_eq!(expected, op);
+
+        let op = make_op(OpCode::OpJmpIfFalse(65534));
+        let expected = vec![0x10, 255, 254];
         assert_eq!(expected, op);
     }
 
