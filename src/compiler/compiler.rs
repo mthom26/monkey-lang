@@ -43,6 +43,7 @@ impl Compiler {
             match statement {
                 Statement::ExpressionStatement(expr) => {
                     self.compile_expression(expr);
+                    self.add_instruction(OpCode::OpPop);
                 }
                 _ => unimplemented!(),
             }
@@ -102,14 +103,14 @@ mod tests {
     fn test_basic_expressions() {
         let input = "3";
         let expected = ByteCode {
-            instructions: vec![1, 0, 0],
+            instructions: vec![1, 0, 0, 6],
             constants: vec![Object::Int(3)],
         };
         assert_eq!(expected, compiled(input));
 
         let input = "1 + 2";
         let expected = ByteCode {
-            instructions: vec![1, 0, 0, 1, 0, 1, 2],
+            instructions: vec![1, 0, 0, 1, 0, 1, 2, 6],
             constants: vec![Object::Int(1), Object::Int(2)],
         };
         assert_eq!(expected, compiled(input));
@@ -123,6 +124,7 @@ mod tests {
                 2,       // OpAdd
                 1, 0, 2, // Int 3
                 2,       // OpAdd
+                6,       // OpPop
             ],
             constants: vec![Object::Int(1), Object::Int(2), Object::Int(3)],
         };
@@ -130,7 +132,7 @@ mod tests {
 
         let input = "1 - 2";
         let expected = ByteCode {
-            instructions: vec![1, 0, 0, 1, 0, 1, 3],
+            instructions: vec![1, 0, 0, 1, 0, 1, 3, 6],
             constants: vec![Object::Int(1), Object::Int(2)],
         };
         assert_eq!(expected, compiled(input));
@@ -148,6 +150,7 @@ mod tests {
                 3,       // OpSub
                 1, 0, 4, // Int 4
                 2,       // OpAdd
+                6,       // OpPop
             ],
             constants: vec![
                 Object::Int(1),

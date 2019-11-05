@@ -77,6 +77,11 @@ impl Vm {
                     };
                     ip += 1;
                 }
+                0x06 => {
+                    // OpPop
+                    self.pop();
+                    ip += 1;
+                }
                 invalid => panic!("Invalid instruction: {}", invalid),
             }
         }
@@ -94,6 +99,14 @@ impl Vm {
     fn pop(&mut self) -> Object {
         self.stack_pointer -= 1;
         self.stack[self.stack_pointer].clone()
+    }
+
+    // Utility function to observe stack
+    fn print_stack(&self, num: usize) {
+        println!("Vm Stack");
+        for i in 0..num {
+            println!("{}: {:?}", i, self.stack[i]);
+        }
     }
 }
 
@@ -130,5 +143,10 @@ mod tests {
         let mut vm = Vm::new(compiled(input));
         vm.run();
         assert_eq!(Object::Int(-2), vm.stack[0]);
+
+        let input = "1; 2; 3;";
+        let mut vm = Vm::new(compiled(input));
+        vm.run();
+        assert_eq!(Object::Int(3), vm.stack[0]);
     }
 }
