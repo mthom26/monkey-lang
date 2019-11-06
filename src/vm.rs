@@ -5,11 +5,13 @@ use crate::{
 use std::mem;
 
 const STACK_SIZE: usize = 2048;
+const GLOBAL_SIZE: usize = 2048; // Setting this too high causes an overflow
 
 pub struct Vm {
     instructions: Vec<u8>,
     constants: Vec<Object>,
     stack: [Object; STACK_SIZE],
+    globals: [Object; GLOBAL_SIZE],
     stack_pointer: usize,
 }
 
@@ -19,6 +21,7 @@ impl Vm {
             instructions: bytecode.instructions,
             constants: bytecode.constants,
             stack: unsafe { mem::zeroed() },
+            globals: unsafe { mem::zeroed() },
             stack_pointer: 0,
         }
     }
@@ -170,6 +173,20 @@ impl Vm {
                         _ => panic!("Invalid OpJmpIfFalse operand"),
                     }
                 }
+                0x11 => {
+                    // OpSetGlobal
+                    let global_index =
+                        two_u8_to_usize(self.instructions[ip + 1], self.instructions[ip + 2]);
+                    self.globals[global_index] = self.pop();
+                    ip += 3;
+                }
+                0x12 => {
+                    // OpGetGlobal
+                    let global_index =
+                        two_u8_to_usize(self.instructions[ip + 1], self.instructions[ip + 2]);
+                    self.push(self.globals[global_index].clone());
+                    ip += 3;
+                }
                 invalid => panic!("Invalid instruction: {}", invalid),
             }
         }
@@ -300,5 +317,23 @@ mod tests {
         let mut vm = Vm::new(compiled(input));
         vm.run();
         assert_eq!(Object::Int(20), vm.stack[0]);
+    }
+
+    #[test]
+    fn test_let_statements() {
+        let input = "let x = 1; x;";
+        let mut vm = Vm::new(compiled(input));
+        vm.run();
+        assert_eq!(Object::Int(1), vm.stack[0]);
+
+        let input = "let x = 2; let y = x; y;";
+        let mut vm = Vm::new(compiled(input));
+        vm.run();
+        assert_eq!(Object::Int(2), vm.stack[0]);
+
+        let input = "let x = 1; let y = 2; x + y;";
+        let mut vm = Vm::new(compiled(input));
+        vm.run();
+        assert_eq!(Object::Int(3), vm.stack[0]);
     }
 }

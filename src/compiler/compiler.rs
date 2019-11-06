@@ -72,6 +72,12 @@ impl Compiler {
                     false => self.add_instruction(OpCode::OpFalse),
                 };
             }
+            Expression::Ident(val) => {
+                match self.symbol_table.resolve(val) {
+                    Some(index) => self.add_instruction(OpCode::OpGetGlobal(index)),
+                    None => panic!("Undefined variable"),
+                };
+            }
             Expression::Infix { left, op, right } => {
                 self.compile_expression(*left);
                 self.compile_expression(*right);
@@ -347,6 +353,34 @@ mod tests {
                 17, 0, 1, // OpSetGlobal two
             ],
             constants: vec![Object::Int(1), Object::Int(2)],
+        };
+        assert_eq!(expected, compiled(input));
+
+        let input = "let one = 1; let two = one; let three = two;";
+        #[rustfmt::skip]
+        let expected = ByteCode {
+            instructions: vec![
+                1, 0, 0,  // Int 1
+                17, 0, 0, // OpSetGlobal one
+                18, 0, 0, // OpGetGlobal 
+                17, 0, 1, // OpSetGlobal two
+                18, 0, 1, // OpGetGlobal 
+                17, 0, 2, // OpSetGlobal two
+            ],
+            constants: vec![Object::Int(1)],
+        };
+        assert_eq!(expected, compiled(input));
+
+        let input = "let x = 1; x;";
+        #[rustfmt::skip]
+        let expected = ByteCode {
+            instructions: vec![
+                1, 0, 0,  // Int 1
+                17, 0, 0, // OpSetGlobal one
+                18, 0, 0, // OpGetGlobal
+                6,        // OpPop
+            ],
+            constants: vec![Object::Int(1)],
         };
         assert_eq!(expected, compiled(input));
     }
