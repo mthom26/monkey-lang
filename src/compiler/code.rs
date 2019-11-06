@@ -15,6 +15,8 @@ pub enum OpCode {
     OpMinus,
     OpJmp(u16),
     OpJmpIfFalse(u16),
+    OpSetGlobal(u16),
+    OpGetGlobal(u16),
 }
 
 pub fn make_op(opcode: OpCode) -> Vec<u8> {
@@ -50,6 +52,22 @@ pub fn make_op(opcode: OpCode) -> Vec<u8> {
         }
         OpCode::OpJmpIfFalse(operand) => {
             let mut output = vec![0x10];
+            let int_one = (operand >> 8) as u8;
+            let int_two = operand as u8;
+            output.push(int_one);
+            output.push(int_two);
+            output
+        }
+        OpCode::OpSetGlobal(operand) => {
+            let mut output = vec![0x11];
+            let int_one = (operand >> 8) as u8;
+            let int_two = operand as u8;
+            output.push(int_one);
+            output.push(int_two);
+            output
+        }
+        OpCode::OpGetGlobal(operand) => {
+            let mut output = vec![0x12];
             let int_one = (operand >> 8) as u8;
             let int_two = operand as u8;
             output.push(int_one);
@@ -141,6 +159,17 @@ mod tests {
 
         let op = make_op(OpCode::OpJmpIfFalse(65534));
         let expected = vec![0x10, 255, 254];
+        assert_eq!(expected, op);
+    }
+
+    #[test]
+    fn test_globals() {
+        let op = make_op(OpCode::OpSetGlobal(65534));
+        let expected = vec![0x11, 255, 254];
+        assert_eq!(expected, op);
+
+        let op = make_op(OpCode::OpGetGlobal(65534));
+        let expected = vec![0x12, 255, 254];
         assert_eq!(expected, op);
     }
 

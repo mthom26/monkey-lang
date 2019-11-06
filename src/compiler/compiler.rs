@@ -1,9 +1,12 @@
 use crate::{
-    compiler::{make_op, OpCode},
+    compiler::{make_op, OpCode, SymbolTable},
     evaluator::Object,
     lexer::lexer,
     parser::{parse, Expression, Operator, Prefix, Statement},
 };
+
+// TODO Handle scopes more appropriately
+const GLOBAL: &str = "GLOBAL";
 
 #[derive(Debug, PartialEq)]
 pub struct ByteCode {
@@ -22,12 +25,14 @@ impl ByteCode {
 
 pub struct Compiler {
     byte_code: ByteCode,
+    symbol_table: SymbolTable,
 }
 
 impl Compiler {
     pub fn from_source(input: &str) -> ByteCode {
         let mut compiler = Compiler {
             byte_code: ByteCode::new(),
+            symbol_table: SymbolTable::new(),
         };
 
         let mut tokens = lexer(input.as_bytes());
@@ -44,6 +49,11 @@ impl Compiler {
                 Statement::ExpressionStatement(expr) => {
                     self.compile_expression(expr);
                     self.add_instruction(OpCode::OpPop);
+                }
+                Statement::Let { name, value } => {
+                    self.compile_expression(value);
+                    let symbol_index = self.symbol_table.define(name, GLOBAL.to_owned());
+                    self.add_instruction(OpCode::OpSetGlobal(symbol_index));
                 }
                 _ => unimplemented!(),
             }
@@ -321,6 +331,22 @@ mod tests {
                 6,         // OpPop
             ],
             constants: vec![Object::Int(10), Object::Int(20)],
+        };
+        assert_eq!(expected, compiled(input));
+    }
+
+    #[test]
+    fn test_globals() {
+        let input = "let one = 1; let two = 2;";
+        #[rustfmt::skip]
+        let expected = ByteCode {
+            instructions: vec![
+                1, 0, 0,  // Int 1
+                17, 0, 0, // OpSetGlobal one
+                1, 0, 1,  // Int 2
+                17, 0, 1, // OpSetGlobal two
+            ],
+            constants: vec![Object::Int(1), Object::Int(2)],
         };
         assert_eq!(expected, compiled(input));
     }
