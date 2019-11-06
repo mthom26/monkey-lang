@@ -148,6 +148,28 @@ impl Vm {
                     };
                     ip += 1;
                 }
+                0x0f => {
+                    // OpJmp
+                    let new_ip =
+                        two_u8_to_usize(self.instructions[ip + 1], self.instructions[ip + 2]);
+                    ip = new_ip;
+                }
+                0x10 => {
+                    // OpJmpIfFalse
+                    match self.pop() {
+                        Object::Boolean(true) => {
+                            ip += 3;
+                        }
+                        Object::Boolean(false) => {
+                            let new_ip = two_u8_to_usize(
+                                self.instructions[ip + 1],
+                                self.instructions[ip + 2],
+                            );
+                            ip = new_ip;
+                        }
+                        _ => panic!("Invalid OpJmpIfFalse operand"),
+                    }
+                }
                 invalid => panic!("Invalid instruction: {}", invalid),
             }
         }
@@ -265,5 +287,18 @@ mod tests {
         let mut vm = Vm::new(compiled(input));
         vm.run();
         assert_eq!(Object::Boolean(true), vm.stack[0]);
+    }
+
+    #[test]
+    fn test_conditionals() {
+        let input = "if(true) { 10 }";
+        let mut vm = Vm::new(compiled(input));
+        vm.run();
+        assert_eq!(Object::Int(10), vm.stack[0]);
+
+        let input = "if(false) { 10 } else { 20 }";
+        let mut vm = Vm::new(compiled(input));
+        vm.run();
+        assert_eq!(Object::Int(20), vm.stack[0]);
     }
 }

@@ -92,7 +92,7 @@ impl Compiler {
             } => {
                 self.compile_expression(*condition);
 
-                let jmp_pos = self.byte_code.instructions.len();
+                let jmp_false = self.byte_code.instructions.len();
                 self.add_instruction(OpCode::OpJmpIfFalse(9999));
 
                 // Consequence
@@ -105,9 +105,22 @@ impl Compiler {
                 if alternative.len() == 0 {
                     // No alternative
                     let new_jmp_pos = self.byte_code.instructions.len() as u16;
-                    self.replace_op(jmp_pos, OpCode::OpJmpIfFalse(new_jmp_pos));
+                    self.replace_op(jmp_false, OpCode::OpJmpIfFalse(new_jmp_pos));
                 } else {
-                    // TODO Handle alternative
+                    // This OpJmp is hit and skips alternative if condition is true
+                    let jmp = self.byte_code.instructions.len();
+                    self.add_instruction(OpCode::OpJmp(9999));
+                    // Jump to here if condition is false
+                    let jmp_false_pos = self.byte_code.instructions.len() as u16;
+                    self.replace_op(jmp_false, OpCode::OpJmpIfFalse(jmp_false_pos));
+
+                    self.compile_statements(alternative);
+                    if self.is_last_instruction_pop() {
+                        self.remove_last_pop();
+                    }
+
+                    let jmp_pos = self.byte_code.instructions.len() as u16;
+                    self.replace_op(jmp, OpCode::OpJmp(jmp_pos));
                 }
             }
             _ => unimplemented!(),
@@ -293,6 +306,21 @@ mod tests {
         let expected = ByteCode {
             instructions: vec![7, 16, 0, 7, 1, 0, 0, 6],
             constants: vec![Object::Int(10)],
+        };
+        assert_eq!(expected, compiled(input));
+
+        let input = "if(true) { 10 } else { 20 }";
+        #[rustfmt::skip]
+        let expected = ByteCode {
+            instructions: vec![
+                7,         // OpTrue
+                16, 0, 10, // OpJmpIfFalse
+                1, 0, 0,   // Int 10
+                15, 0, 13, // OpJmp
+                1, 0, 1,   // Int 20
+                6,         // OpPop
+            ],
+            constants: vec![Object::Int(10), Object::Int(20)],
         };
         assert_eq!(expected, compiled(input));
     }
